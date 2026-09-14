@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Karim Zaky{% endblock %}
+
+{% block content %}
+<section class="home-container">
+    <div class="bio">
+        <h1>Karim Zaky</h1>
+        <h2>Senior Avionics Systems Engineer at Sabre Systems</h2>
+
+        <p>
+            I am a systems engineer with six years of professional
+            experience. Outside of work, I enjoy CrossFit, pickleball,
+            reading, hiking, and traveling.
+        </p>
+    </div>
+
+    <div class="profile-image">
+        <img
+            src="{{ url_for('static', filename='images/profile.jpg') }}"
+            alt="Portrait of Karim Zaky"
+        >
+    </div>
+</section>
+{% endblock %}
