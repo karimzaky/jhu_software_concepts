@@ -1,0 +1,142 @@
+/* Apply consistent sizing rules to every element. */
+* {
+    box-sizing: border-box;
+}
+
+/* Set the default appearance for the entire website. */
+body {
+    margin: 0;
+    background-color: #f4f7fb;
+    color: #1f2937;
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+}
+
+/* Give the navigation area a distinct color. */
+header {
+    background-color: #12355b;
+    padding: 16px 8%;
+}
+
+/* Place the navigation links in the top-right corner. */
+.navbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Style each navigation link. */
+.navbar a {
+    border-radius: 6px;
+    color: #ffffff;
+    padding: 8px 14px;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+/* Show feedback when the mouse is placed over a link. */
+.navbar a:hover {
+    background-color: #2d5f8b;
+}
+
+/* Highlight the navigation tab for the current page. */
+.navbar a.active {
+    background-color: #ffffff;
+    color: #12355b;
+    font-weight: bold;
+}
+
+/* Provide consistent spacing and width for the page content. */
+main {
+    margin: 0 auto;
+    max-width: 1200px;
+    padding: 60px 8%;
+}
+
+/* Arrange the biography on the left and image on the right. */
+.home-container {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 60px;
+    align-items: center;
+}
+
+/* Style the main name heading. */
+.bio h1,
+.page-container h1 {
+    color: #12355b;
+    font-size: 2.5rem;
+    margin-bottom: 5px;
+}
+
+/* Style the position beneath the name. */
+.bio h2 {
+    color: #3e6b89;
+    font-size: 1.3rem;
+    font-weight: normal;
+    margin-top: 0;
+}
+
+/* Center the photograph inside its grid column. */
+.profile-image {
+    text-align: center;
+}
+
+/* Control the photograph's size and appearance. */
+.profile-image img {
+    border: 5px solid #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    height: auto;
+    max-width: 100%;
+    width: 320px;
+}
+
+/* Style the standard content pages. */
+.page-container {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+    padding: 35px;
+}
+
+/* Style links appearing inside the page content. */
+.page-container a {
+    color: #1769aa;
+    font-weight: bold;
+}
+
+/* Provide visual separation for each project. */
+.project {
+    border-left: 5px solid #1769aa;
+    padding-left: 20px;
+}
+
+/* Adapt the layout for phones and smaller screens. */
+@media (max-width: 700px) {
+    main {
+        padding: 35px 6%;
+    }
+
+    .home-container {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .bio {
+        order: 1;
+    }
+
+    .profile-image {
+        order: 2;
+    }
+
+    .navbar {
+        justify-content: center;
+    }
+
+    .bio h1,
+    .page-container h1 {
+        font-size: 2rem;
+    }
+}
