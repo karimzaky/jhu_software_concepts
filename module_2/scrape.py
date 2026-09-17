@@ -10,12 +10,14 @@ import subprocess
 import re
 from bs4 import BeautifulSoup
 import time
+import argparse
 
 BASE_URL = "https://www.thegradcafe.com"
 SURVEY_PATH = "/survey"
 OUTPUT_FILE = Path(__file__).with_name("applicant_data.json")
 CAPTURE_DIRECTORY = Path(__file__).with_name("captured_pages")
-
+STATE_FILE = Path(__file__).with_name("scrape_state.json")
+POLITE_DELAY_SECONDS = 4.0
 DISALLOWED_PATHS = {
     "/signin",
     "/register",
@@ -361,6 +363,42 @@ def parse_captured_page(
 
     return records, next_url
 
+def _save_state(next_url: str | None, next_page_number: int) -> None:
+    """Save the next cursor so an interrupted run can resume."""
+    state = {
+        "next_url": next_url,
+        "next_page_number": next_page_number,
+    }
+
+    temporary_file = STATE_FILE.with_suffix(".tmp")
+    temporary_file.write_text(
+        json.dumps(state, indent=2),
+        encoding="utf-8",
+    )
+    temporary_file.replace(STATE_FILE)
+
+
+def _load_state() -> tuple[str, int]:
+    """Load the next page URL and page number from the saved state."""
+    if not STATE_FILE.exists():
+        return build_survey_url(), 1
+
+    state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+    next_url = state.get("next_url")
+    next_page_number = state.get("next_page_number", 1)
+
+    if not next_url:
+        raise ValueError("The saved scraping state has no next URL.")
+
+    _validate_public_url(next_url)
+    return next_url, int(next_page_number)
+
+
+def _first_result_path(html: str) -> str | None:
+    """Return the first applicant result path found in HTML."""
+    match = re.search(r'href=["\'](/result/\d+)["\']', html)
+    return match.group(1) if match else None
+
 def save_data(
     records: list[dict[str, Any]],
     output_file: Path = OUTPUT_FILE,
@@ -387,25 +425,104 @@ def load_data(input_file: Path = OUTPUT_FILE) -> list[dict[str, Any]]:
     return records
 
 
+def scrape_data(
+    target_records: int = 30_000,
+    max_pages: int | None = None,
+) -> list[dict[str, Any]]:
+    """Capture, parse, deduplicate, and checkpoint GradCafe records."""
+    existing_records = load_data()
+    records_by_url = {
+        record["url"]: record
+        for record in existing_records
+        if record.get("url")
+    }
+
+    current_url, page_number = _load_state()
+    pages_processed = 0
+
+    print(f"Starting with {len(records_by_url)} saved records.")
+    print(f"Resuming at page {page_number}: {current_url}")
+
+    while len(records_by_url) < target_records:
+        if max_pages is not None and pages_processed >= max_pages:
+            print("Reached the requested page limit.")
+            break
+
+        active_url, active_html = _get_active_chrome_page()
+
+        if active_url != current_url:
+            previous_first_result = _first_result_path(active_html)
+            print(f"Navigating to page {page_number}: {current_url}")
+            _navigate_chrome(current_url)
+            _wait_for_survey_page(
+                current_url,
+                previous_first_result=previous_first_result,
+            )
+
+        captured_file = capture_current_page(page_number)
+        page_records, next_url = parse_captured_page(captured_file)
+
+        if not page_records:
+            raise RuntimeError(
+                f"No applicant records were parsed from page {page_number}."
+            )
+
+        records_before = len(records_by_url)
+
+        for record in page_records:
+            records_by_url[record["url"]] = record
+
+        all_records = list(records_by_url.values())
+        save_data(all_records)
+
+        pages_processed += 1
+        new_records = len(records_by_url) - records_before
+
+        if next_url == current_url:
+            raise RuntimeError(
+                "The Next URL did not advance. Stopping to prevent a loop."
+            )
+
+        _save_state(next_url, page_number + 1)
+
+        print(
+            f"Page {page_number}: {len(page_records)} parsed, "
+            f"{new_records} new, {len(records_by_url)} total."
+        )
+
+        if len(records_by_url) >= target_records:
+            print(f"Reached target of {target_records} records.")
+            break
+
+        if next_url is None:
+            print("No Next link was found. Collection is complete.")
+            break
+
+        time.sleep(POLITE_DELAY_SECONDS)
+        current_url = next_url
+        page_number += 1
+
+    return list(records_by_url.values())
+
 if __name__ == "__main__":
-    first_file = CAPTURE_DIRECTORY / "page_00001.html"
-    first_records, second_page_url = parse_captured_page(first_file)
-
-    if second_page_url is None:
-        raise RuntimeError("The first page did not contain a Next link.")
-
-    print(f"Navigating to: {second_page_url}")
-    _navigate_chrome(second_page_url)
-
-    previous_first_result = urlparse(first_records[0]["url"]).path
-
-    _wait_for_survey_page(
-        second_page_url,
-        previous_first_result=previous_first_result,
+    parser = argparse.ArgumentParser(
+        description="Capture and parse public GradCafe applicant results."
     )
+    parser.add_argument(
+        "--target-records",
+        type=int,
+        default=30_000,
+        help="Total number of unique applicant records to collect.",
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=None,
+        help="Optional page limit for testing.",
+    )
+    arguments = parser.parse_args()
 
-    second_file = capture_current_page(page_number=2)
-    second_records, third_page_url = parse_captured_page(second_file)
-
-    print(f"Parsed page 2 records: {len(second_records)}")
-    print(f"Next page: {third_page_url}")
+    scrape_data(
+        target_records=arguments.target_records,
+        max_pages=arguments.max_pages,
+    )

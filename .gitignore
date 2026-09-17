@@ -4,3 +4,4 @@
 __pycache__/
 *.pyc
 module_2/captured_pages/
+module_2/scrape_state.json
