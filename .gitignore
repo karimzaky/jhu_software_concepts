@@ -3,3 +3,4 @@
 .venv-incomplete/
 __pycache__/
 *.pyc
+module_2/captured_pages/
