@@ -9,6 +9,7 @@ from urllib.parse import urlencode, urljoin, urlparse
 import subprocess
 import re
 from bs4 import BeautifulSoup
+import time
 
 BASE_URL = "https://www.thegradcafe.com"
 SURVEY_PATH = "/survey"
@@ -52,6 +53,95 @@ def _validate_public_url(url: str) -> None:
 
     if parsed_url.path != SURVEY_PATH:
         raise ValueError(f"Unexpected GradCafe path: {parsed_url.path}")
+
+def _navigate_chrome(url: str) -> None:
+    """Navigate the active Chrome tab to a validated GradCafe survey URL."""
+    _validate_public_url(url)
+
+    apple_script = """
+    on run arguments
+        set targetURL to item 1 of arguments
+        tell application "Google Chrome"
+            if (count of windows) is 0 then
+                error "Google Chrome has no open windows."
+            end if
+            set URL of active tab of window 1 to targetURL
+        end tell
+    end run
+    """
+
+    result = subprocess.run(
+        ["osascript", "-e", apple_script, url],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            "Chrome navigation failed.\n"
+            f"{result.stderr.strip()}"
+        )
+
+
+def _wait_for_survey_page(
+    expected_url: str,
+    previous_first_result: str | None = None,
+    timeout_seconds: float = 45.0,
+) -> None:
+    """Wait until Chrome renders a new applicant-results table."""
+    deadline = time.monotonic() + timeout_seconds
+
+    while time.monotonic() < deadline:
+        current_url, current_html = _get_active_chrome_page()
+        lowercase_html = current_html.lower()
+
+        verification_phrases = (
+            "verify you are human",
+            "checking your browser",
+            "performing security verification",
+        )
+
+        if any(
+            phrase in lowercase_html
+            for phrase in verification_phrases
+        ):
+            raise RuntimeError(
+                "GradCafe displayed a verification page. "
+                "Complete it manually and rerun the program."
+            )
+
+        first_result_match = re.search(
+            r'href=["\'](/result/\d+)["\']',
+            current_html,
+        )
+        current_first_result = (
+            first_result_match.group(1)
+            if first_result_match
+            else None
+        )
+
+        result_changed = (
+            previous_first_result is None
+            or current_first_result != previous_first_result
+        )
+
+        page_is_ready = (
+            current_url == expected_url
+            and current_first_result is not None
+            and result_changed
+        )
+
+        if page_is_ready:
+            return
+
+        time.sleep(1.0)
+
+    raise TimeoutError(
+        "GradCafe did not render a new results table within "
+        f"{timeout_seconds} seconds: {expected_url}"
+    )
+    
 
 def _get_active_chrome_page() -> tuple[str, str]:
     """Return the URL and rendered HTML from the active Chrome tab."""
@@ -298,10 +388,24 @@ def load_data(input_file: Path = OUTPUT_FILE) -> list[dict[str, Any]]:
 
 
 if __name__ == "__main__":
-    captured_file = CAPTURE_DIRECTORY / "page_00001.html"
-    applicant_records, next_page_url = parse_captured_page(captured_file)
-    save_data(applicant_records)
+    first_file = CAPTURE_DIRECTORY / "page_00001.html"
+    first_records, second_page_url = parse_captured_page(first_file)
 
-    print(f"Parsed {len(applicant_records)} applicant records.")
-    print(f"Next page: {next_page_url}")
-    print(f"Saved JSON: {OUTPUT_FILE}")
+    if second_page_url is None:
+        raise RuntimeError("The first page did not contain a Next link.")
+
+    print(f"Navigating to: {second_page_url}")
+    _navigate_chrome(second_page_url)
+
+    previous_first_result = urlparse(first_records[0]["url"]).path
+
+    _wait_for_survey_page(
+        second_page_url,
+        previous_first_result=previous_first_result,
+    )
+
+    second_file = capture_current_page(page_number=2)
+    second_records, third_page_url = parse_captured_page(second_file)
+
+    print(f"Parsed page 2 records: {len(second_records)}")
+    print(f"Next page: {third_page_url}")
