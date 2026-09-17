@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode, urljoin, urlparse
 import subprocess
-
+import re
+from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.thegradcafe.com"
 SURVEY_PATH = "/survey"
@@ -116,6 +117,160 @@ def capture_current_page(page_number: int) -> Path:
 
     return output_file
 
+def _is_applicant_row(row: Any) -> bool:
+    """Return True when a table row begins a new applicant record."""
+    cells = row.find_all("td", recursive=False)
+    result_link = row.find("a", href=re.compile(r"^/result/\d+$"))
+    return len(cells) >= 5 and result_link is not None
+
+
+def _add_status_date(record: dict[str, Any]) -> None:
+    """Extract the decision date from a status such as 'Accepted on May 04'."""
+    match = re.fullmatch(
+        r"(Accepted|Rejected|Wait listed|Interview) on (.+)",
+        record["status"],
+        flags=re.IGNORECASE,
+    )
+
+    if not match:
+        return
+
+    status_type = match.group(1).lower()
+    status_date = match.group(2).strip()
+
+    date_fields = {
+        "accepted": "acceptance_date",
+        "rejected": "rejection_date",
+        "wait listed": "waitlist_date",
+        "interview": "interview_date",
+    }
+    record[date_fields[status_type]] = status_date
+
+
+def _add_badge_value(record: dict[str, Any], badge_text: str) -> None:
+    """Place a metadata badge into the appropriate applicant field."""
+    badge_text = badge_text.strip()
+
+    if badge_text == record["status"]:
+        return
+
+    if re.fullmatch(
+        r"(Fall|Spring|Summer|Winter)\s+\d{4}",
+        badge_text,
+        flags=re.IGNORECASE,
+    ):
+        record["term"] = badge_text
+    elif badge_text in {"American", "International"}:
+        record["US/International"] = badge_text
+    elif badge_text.startswith("GRE AW "):
+        record["GRE AW"] = badge_text
+    elif badge_text.startswith("GRE V "):
+        record["GRE V"] = badge_text
+    elif badge_text.startswith("GRE "):
+        record["GRE"] = badge_text
+    elif badge_text.startswith("GPA "):
+        record["GPA"] = badge_text
+
+
+def _parse_applicant_row(row: Any) -> dict[str, Any]:
+    """Parse the main table row for one applicant."""
+    cells = row.find_all("td", recursive=False)
+    result_link = row.find("a", href=re.compile(r"^/result/\d+$"))
+
+    university = cells[0].get_text(" ", strip=True)
+    program_parts = cells[1].find_all("span")
+    program_name = program_parts[0].get_text(" ", strip=True)
+    degree = (
+        program_parts[-1].get_text(" ", strip=True)
+        if len(program_parts) > 1
+        else None
+    )
+    date_added = cells[2].get_text(" ", strip=True)
+    status = cells[3].get_text(" ", strip=True)
+
+    record = {
+        # Combined value required by the supplied LLM package:
+        "program": f"{program_name}, {university}",
+        # Separate raw values preserved for traceability:
+        "program_name": program_name,
+        "university": university,
+        "comments": None,
+        "date_added": f"Added on {date_added}",
+        "url": urljoin(BASE_URL, result_link["href"]),
+        "status": status,
+        "acceptance_date": None,
+        "rejection_date": None,
+        "waitlist_date": None,
+        "interview_date": None,
+        "term": None,
+        "US/International": None,
+        "GRE": None,
+        "GRE V": None,
+        "GPA": None,
+        "GRE AW": None,
+        "Degree": degree,
+    }
+
+    _add_status_date(record)
+    return record
+
+
+def parse_captured_page(
+    input_file: Path,
+) -> tuple[list[dict[str, Any]], str | None]:
+    """Parse applicant records and the next cursor URL from captured HTML."""
+    html = input_file.read_text(encoding="utf-8")
+    soup = BeautifulSoup(html, "html.parser")
+    table_body = soup.select_one("table tbody")
+
+    if table_body is None:
+        raise ValueError("No applicant results table was found.")
+
+    rows = table_body.find_all("tr", recursive=False)
+    records: list[dict[str, Any]] = []
+    row_index = 0
+
+    while row_index < len(rows):
+        current_row = rows[row_index]
+
+        if not _is_applicant_row(current_row):
+            row_index += 1
+            continue
+
+        record = _parse_applicant_row(current_row)
+        row_index += 1
+
+        # Metadata and comments appear after the main applicant row.
+        while (
+            row_index < len(rows)
+            and not _is_applicant_row(rows[row_index])
+        ):
+            supplementary_row = rows[row_index]
+
+            for badge in supplementary_row.select("td > div > div"):
+                _add_badge_value(
+                    record,
+                    badge.get_text(" ", strip=True),
+                )
+
+            comment = supplementary_row.find("p")
+            if comment is not None:
+                record["comments"] = comment.get_text(" ", strip=True)
+
+            row_index += 1
+
+        records.append(record)
+
+    next_url = None
+
+    for link in soup.find_all("a", href=True):
+        if link.get_text(" ", strip=True) == "Next":
+            next_url = urljoin(BASE_URL, link["href"])
+            _validate_public_url(next_url)
+            break
+
+    return records, next_url
+
 def save_data(
     records: list[dict[str, Any]],
     output_file: Path = OUTPUT_FILE,
@@ -143,4 +298,10 @@ def load_data(input_file: Path = OUTPUT_FILE) -> list[dict[str, Any]]:
 
 
 if __name__ == "__main__":
-    capture_current_page(page_number=1)
+    captured_file = CAPTURE_DIRECTORY / "page_00001.html"
+    applicant_records, next_page_url = parse_captured_page(captured_file)
+    save_data(applicant_records)
+
+    print(f"Parsed {len(applicant_records)} applicant records.")
+    print(f"Next page: {next_page_url}")
+    print(f"Saved JSON: {OUTPUT_FILE}")
