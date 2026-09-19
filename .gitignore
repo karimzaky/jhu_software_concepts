@@ -5,3 +5,6 @@ __pycache__/
 *.pyc
 module_2/captured_pages/
 module_2/scrape_state.json
+module_2/llm_extend_applicant_data.jsonl
+module_2/llm_hosting/models/
+module_2/llm_hosting/sample_out*.jsonl
