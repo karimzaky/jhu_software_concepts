@@ -8,3 +8,5 @@ module_2/scrape_state.json
 module_2/llm_extend_applicant_data.jsonl
 module_2/llm_hosting/models/
 module_2/llm_hosting/sample_out*.jsonl
+.env
+module_3/captured_pages/
