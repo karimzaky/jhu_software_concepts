@@ -20,6 +20,55 @@ def get_question_1(session):
 
     return session.scalar(statement)
 
+def get_question_2(session):
+    """
+    Return the percentage of usable nationality classifications that
+    are International.
+    """
+    international_condition = (
+        func.lower(
+            func.trim(Applicant.us_or_international)
+        ) == "international"
+    )
+
+    usable_classification = (
+        Applicant.us_or_international.is_not(None)
+        & (func.trim(Applicant.us_or_international) != "")
+    )
+
+    international_count = func.count(
+        Applicant.p_id
+    ).filter(international_condition)
+
+    usable_count = func.count(
+        Applicant.p_id
+    ).filter(usable_classification)
+
+    percentage_expression = (
+        100.0
+        * international_count
+        / func.nullif(usable_count, 0)
+    )
+
+    return session.scalar(
+        select(percentage_expression)
+    )
+
+
+def get_question_3(session):
+    """
+    Return the average GPA and three GRE metrics.
+
+    SQL AVG ignores NULL values independently for every column.
+    """
+    statement = select(
+        func.avg(Applicant.gpa),
+        func.avg(Applicant.gre),
+        func.avg(Applicant.gre_v),
+        func.avg(Applicant.gre_aw),
+    )
+
+    return session.execute(statement).one()
 
 def get_question_4(session):
     """
@@ -73,6 +122,52 @@ def get_question_5(session):
 
     return session.scalar(statement)
 
+def get_question_6(session):
+    """Return the average GPA of accepted Fall 2026 applicants."""
+    statement = (
+        select(func.avg(Applicant.gpa))
+        .where(
+            func.lower(
+                func.trim(Applicant.term)
+            ) == "fall 2026",
+            func.lower(
+                func.trim(Applicant.status)
+            ).like("accepted%"),
+            Applicant.gpa.is_not(None),
+        )
+    )
+
+    return session.scalar(statement)
+
+
+def get_question_7(session):
+    """
+    Return the Johns Hopkins Computer Science master's count using
+    the original program and degree fields.
+    """
+    johns_hopkins_condition = or_(
+        Applicant.program.ilike(
+            "%Johns Hopkins University%"
+        ),
+        Applicant.program.op("~*")(
+            r"(^|[^[:alnum:]])JHU([^[:alnum:]]|$)"
+        ),
+    )
+
+    statement = (
+        select(func.count(Applicant.p_id))
+        .where(
+            johns_hopkins_condition,
+            Applicant.program.ilike(
+                "%Computer Science%"
+            ),
+            func.lower(
+                func.trim(Applicant.degree)
+            ) == "masters",
+        )
+    )
+
+    return session.scalar(statement)
 
 def original_university_conditions():
     """
@@ -217,6 +312,69 @@ def get_original_question(session):
 
     return session.execute(statement).all()
 
+def get_question_11(session):
+    """
+    Return the five universities with the most reported Fall 2026
+    acceptances.
+    """
+    statement = (
+        select(
+            Applicant.llm_generated_university.label(
+                "university"
+            ),
+            func.count(Applicant.p_id).label(
+                "accepted_entries"
+            ),
+        )
+        .where(
+            func.lower(
+                func.trim(Applicant.term)
+            ) == "fall 2026",
+            func.lower(
+                func.trim(Applicant.status)
+            ).like("accepted%"),
+            Applicant.llm_generated_university.is_not(None),
+            func.trim(
+                Applicant.llm_generated_university
+            ) != "",
+        )
+        .group_by(
+            Applicant.llm_generated_university
+        )
+        .order_by(
+            func.count(Applicant.p_id).desc(),
+            Applicant.llm_generated_university,
+        )
+        .limit(5)
+    )
+
+    return session.execute(statement).all()
+
+def collect_all_analysis_results():
+    """
+    Collect every analysis required by the Flask webpage.
+
+    All database reads use SQLAlchemy ORM expressions and the
+    Applicant model.
+    """
+    with SessionLocal() as session:
+        results = {
+            "question_1": get_question_1(session),
+            "question_2": get_question_2(session),
+            "question_3": get_question_3(session),
+            "question_4": get_question_4(session),
+            "question_5": get_question_5(session),
+            "question_6": get_question_6(session),
+            "question_7": get_question_7(session),
+            "question_8": get_question_8(session),
+            "question_9": get_question_9(session),
+            "original_question": get_original_question(
+                session
+            ),
+            "question_11": get_question_11(session),
+        }
+
+    return results
 
 def collect_orm_results():
     """
