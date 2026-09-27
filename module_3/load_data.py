@@ -98,6 +98,23 @@ def parse_number(value):
     match = re.search(r"-?\d+(?:\.\d+)?", cleaned_value)
     return float(match.group()) if match else None
 
+def parse_bounded_number(value, minimum, maximum):
+    """
+    Extract a number and return it only when it falls within an
+    accepted range.
+
+    Values outside the range are treated as missing because they
+    cannot reliably represent the metric assigned to the column.
+    """
+    number = parse_number(value)
+
+    if number is None:
+        return None
+
+    if minimum <= number <= maximum:
+        return number
+
+    return None
 
 def parse_date(value):
     """Convert a GradCafe date string into a Python date."""
@@ -124,10 +141,16 @@ def prepare_record(record):
         clean_text(record.get("status")),
         clean_text(record.get("term")),
         clean_text(record.get("US/International")),
-        parse_number(record.get("GPA")),
-        parse_number(record.get("GRE")),
-        parse_number(record.get("GRE V")),
-        parse_number(record.get("GRE AW")),
+        # GPA values above 4.33 are treated as invalid.
+        parse_bounded_number(record.get("GPA"), 0, 4.33),
+
+        # Current GRE Quantitative and Verbal scores range from 130 to 170.
+        # Combined totals such as 328 cannot be treated as Quantitative scores.
+        parse_bounded_number(record.get("GRE"), 130, 170),
+        parse_bounded_number(record.get("GRE V"), 130, 170),
+
+        # GRE Analytical Writing scores range from 0 to 6.
+        parse_bounded_number(record.get("GRE AW"), 0, 6),
         clean_text(record.get("Degree")),
         clean_text(record.get("llm-generated-program")),
         clean_text(record.get("llm-generated-university")),
