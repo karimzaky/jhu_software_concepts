@@ -1,1 +1,1 @@
-https://github.com/karimzaky/jhu_software_concepts
+git@github.com:karimzaky/jhu_software_concepts.git
