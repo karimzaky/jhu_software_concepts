@@ -55,3 +55,22 @@ def postgres_db(monkeypatch):
 
     monkeypatch.setenv("DATABASE_URL", database_url)
     return database_url
+
+
+@pytest.fixture
+def orm_query(postgres_db, monkeypatch):
+    """Bind the real query service to the isolated test database."""
+    import orm_queries
+    from sqlalchemy import create_engine
+    from sqlalchemy.engine import make_url
+    from sqlalchemy.orm import sessionmaker
+
+    url = make_url(postgres_db).set(drivername="postgresql+psycopg")
+    test_engine = create_engine(url)
+    test_sessions = sessionmaker(bind=test_engine, expire_on_commit=False)
+    monkeypatch.setattr(orm_queries, "SessionLocal", test_sessions)
+
+    try:
+        yield orm_queries.collect_all_analysis_results
+    finally:
+        test_engine.dispose()

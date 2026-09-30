@@ -26,6 +26,13 @@ ENV_FILE = BASE_DIR / ".env"
 load_dotenv(ENV_FILE)
 
 
+def format_metric(value, suffix=""):
+    """Format available numbers to two decimals; show N/A when missing."""
+    if value is None:
+        return "N/A"
+    return f"{value:.2f}{suffix}"
+
+
 def build_view_model(raw_results):
     """
     Convert raw SQLAlchemy values into display-ready strings.
@@ -46,7 +53,7 @@ def build_view_model(raw_results):
             "total": f"{row.total_entries:,}",
             "accepted": f"{row.accepted_entries:,}",
             "percentage": (
-                f"{row.acceptance_percentage:.2f}%"
+                format_metric(row.acceptance_percentage, "%")
             ),
         }
         for row in raw_results["original_question"]
@@ -67,20 +74,20 @@ def build_view_model(raw_results):
             f"{raw_results['question_1']:,}"
         ),
         "percent_international": (
-            f"{raw_results['question_2']:.2f}%"
+            format_metric(raw_results['question_2'], "%")
         ),
-        "average_gpa": f"{average_gpa:.2f}",
-        "average_gre": f"{average_gre:.2f}",
-        "average_gre_v": f"{average_gre_v:.2f}",
-        "average_gre_aw": f"{average_gre_aw:.2f}",
+        "average_gpa": format_metric(average_gpa, ""),
+        "average_gre": format_metric(average_gre, ""),
+        "average_gre_v": format_metric(average_gre_v, ""),
+        "average_gre_aw": format_metric(average_gre_aw, ""),
         "american_fall_2026_gpa": (
-            f"{raw_results['question_4']:.2f}"
+            format_metric(raw_results['question_4'], "")
         ),
         "fall_2025_acceptance_percentage": (
-            f"{raw_results['question_5']:.2f}%"
+            format_metric(raw_results['question_5'], "%")
         ),
         "accepted_fall_2026_gpa": (
-            f"{raw_results['question_6']:.2f}"
+            format_metric(raw_results['question_6'], "")
         ),
         "jhu_cs_masters_count": (
             f"{raw_results['question_7']:,}"

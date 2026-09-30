@@ -139,3 +139,34 @@ def test_failed_insert_rolls_back_entire_batch(postgres_db, monkeypatch):
             "SELECT COUNT(*) FROM applicants"
         ).fetchone()[0]
     assert count == 0
+
+
+def test_query_returns_expected_dictionary(orm_query):
+    load_records(records=[
+        {
+            "url": "https://www.thegradcafe.com/result/900007",
+            "term": "Fall 2026",
+            "US/International": "American",
+            "GPA": "3.8",
+        },
+        {
+            "url": "https://www.thegradcafe.com/result/900008",
+            "term": "Fall 2026",
+            "US/International": "International",
+            "GPA": "3.6",
+        },
+    ])
+
+    results = orm_query()
+
+    expected_keys = {
+        "question_1", "question_2", "question_3",
+        "question_4", "question_5", "question_6",
+        "question_7", "question_8", "question_9",
+        "original_question", "question_11",
+    }
+    assert isinstance(results, dict)
+    assert set(results) == expected_keys
+    assert results["question_1"] == 2
+    assert results["question_2"] == pytest.approx(50.0)
+    assert results["question_3"][0] == pytest.approx(3.7)
