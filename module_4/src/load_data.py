@@ -161,17 +161,18 @@ def prepare_record(record):
     )
 
 
-def load_records():
-    """Create the applicants table and load new records into it."""
-    try:
+def load_records(records=None):
+    """Insert supplied records, or read records from the local JSON file.
+
+    Return the number of newly inserted rows. Database errors propagate
+    to the caller, and the connection context rolls back failed inserts.
+    """
+    if records is None:
         with DATA_FILE.open(encoding="utf-8") as file:
             records = json.load(file)
-    except FileNotFoundError:
-        print(f"Data file not found: {DATA_FILE}")
-        return
-    except json.JSONDecodeError as error:
-        print(f"Invalid JSON data: {error}")
-        return
+
+    if not isinstance(records, list):
+        raise ValueError("Applicant data must be a list of records.")
 
     prepared_records = [
         prepare_record(record)
@@ -179,28 +180,23 @@ def load_records():
         if clean_text(record.get("url")) is not None
     ]
 
-    try:
-        with get_connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(CREATE_TABLE_SQL)
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(CREATE_TABLE_SQL)
+            cursor.execute("SELECT COUNT(*) FROM applicants")
+            count_before = cursor.fetchone()[0]
 
-                cursor.execute("SELECT COUNT(*) FROM applicants;")
-                count_before = cursor.fetchone()[0]
+            cursor.executemany(INSERT_SQL, prepared_records)
 
-                cursor.executemany(INSERT_SQL, prepared_records)
+            cursor.execute("SELECT COUNT(*) FROM applicants")
+            count_after = cursor.fetchone()[0]
 
-                cursor.execute("SELECT COUNT(*) FROM applicants;")
-                count_after = cursor.fetchone()[0]
-
-        inserted_count = count_after - count_before
-
-        print(f"JSON records read: {len(records):,}")
-        print(f"Usable records prepared: {len(prepared_records):,}")
-        print(f"New records inserted: {inserted_count:,}")
-        print(f"Total database records: {count_after:,}")
-
-    except psycopg.Error as error:
-        print(f"PostgreSQL error: {error}")
+    inserted_count = count_after - count_before
+    print(f"JSON records read: {len(records):,}")
+    print(f"Usable records prepared: {len(prepared_records):,}")
+    print(f"New records inserted: {inserted_count:,}")
+    print(f"Total database records: {count_after:,}")
+    return inserted_count
 
 
 if __name__ == "__main__":

@@ -34,3 +34,24 @@ def application():
     })
 
 
+
+
+@pytest.fixture
+def postgres_db(monkeypatch):
+    """Prepare an isolated PostgreSQL database for each database test."""
+    import os
+
+    import psycopg
+
+    from load_data import CREATE_TABLE_SQL
+
+    database_url = os.environ["TEST_DATABASE_URL"]
+    with psycopg.connect(database_url) as connection:
+        name = connection.execute("SELECT current_database()").fetchone()[0]
+        if not name.endswith("_test"):
+            raise RuntimeError("Database tests require a database ending in _test")
+        connection.execute(CREATE_TABLE_SQL)
+        connection.execute("TRUNCATE applicants RESTART IDENTITY")
+
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    return database_url
