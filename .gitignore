@@ -10,3 +10,7 @@ module_2/llm_hosting/models/
 module_2/llm_hosting/sample_out*.jsonl
 .env
 module_3/captured_pages/
+module_4/applicant_data.json
+module_4/captured_pages/
+module_4/scrape_state.json
+module_4_source.zip
