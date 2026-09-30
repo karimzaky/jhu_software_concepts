@@ -99,23 +99,13 @@ def _pull_data_worker():
             max_pages=1,
         )
 
-        scraped_count = len(scraped_records) - starting_json_count
-
         # Insert only new URLs; load_records uses ON CONFLICT DO NOTHING.
-        load_records()
+        load_records(records=scraped_records)
 
         ending_database_count = _database_record_count()
         inserted_count = (
             ending_database_count - starting_database_count
         )
-
-        # Detect a partial failure where JSON received new records but
-        # PostgreSQL did not receive all of them.
-        if inserted_count < scraped_count:
-            raise RuntimeError(
-                f"The scraper collected {scraped_count} new records, "
-                f"but PostgreSQL inserted only {inserted_count}."
-            )
 
         finished_time = datetime.now().strftime(
             "%B %d, %Y at %I:%M:%S %p"
@@ -169,11 +159,21 @@ def start_data_pull():
         error=None,
     )
 
-    worker = threading.Thread(
-        target=_pull_data_worker,
-        name="gradcafe-data-pull",
-        daemon=True,
-    )
-    worker.start()
+    try:
+        worker = threading.Thread(
+            target=_pull_data_worker,
+            name="gradcafe-data-pull",
+            daemon=True,
+        )
+        worker.start()
+    except Exception as error:
+        _set_status(
+            running=False,
+            message="The data pull could not start.",
+            last_added=0,
+            error=str(error),
+        )
+        SCRAPE_LOCK.release()
+        raise
 
     return True
