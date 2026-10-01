@@ -8,3 +8,5 @@ reportlab>=4.2,<5
 pypdf>=5,<7
 pytest>=8,<10
 pytest-cov>=5,<8
+Sphinx>=8,<10
+sphinx-rtd-theme>=3,<4

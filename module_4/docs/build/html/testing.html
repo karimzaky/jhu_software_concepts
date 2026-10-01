@@ -1,0 +1,184 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Testing guide &mdash; Module 4 GradCafe Analysis 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="API reference" href="api.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Module 4 GradCafe Analysis
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Developer setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Testing guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#run-the-suite">Run the suite</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#test-markers">Test markers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#stable-selectors">Stable selectors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fixtures-and-test-doubles">Fixtures and test doubles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#postgresql-isolation">PostgreSQL isolation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#coverage-evidence-and-ci">Coverage evidence and CI</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Module 4 GradCafe Analysis</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Testing guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/testing.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="testing-guide">
+<h1>Testing guide<a class="headerlink" href="#testing-guide" title="Link to this heading"></a></h1>
+<section id="run-the-suite">
+<h2>Run the suite<a class="headerlink" href="#run-the-suite" title="Link to this heading"></a></h2>
+<p>Run from the repository root with the virtual environment active
+and PostgreSQL running:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TEST_DATABASE_URL</span><span class="o">=</span><span class="n">postgresql</span><span class="p">:</span><span class="o">///</span><span class="n">gradcafe_module4_test</span> <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pytest</span> <span class="o">-</span><span class="n">c</span> <span class="n">module_4</span><span class="o">/</span><span class="n">pytest</span><span class="o">.</span><span class="n">ini</span> <span class="n">module_4</span><span class="o">/</span><span class="n">tests</span> <span class="o">-</span><span class="n">m</span> <span class="s2">"web or buttons or analysis or db or integration"</span>
+</pre></div>
+</div>
+<p>pytest.ini enables coverage of module_4/src, reports missing statements,
+and requires 100 percent statement coverage.</p>
+</section>
+<section id="test-markers">
+<h2>Test markers<a class="headerlink" href="#test-markers" title="Link to this heading"></a></h2>
+<p>Every test carries at least one registered assignment marker:</p>
+<ul class="simple">
+<li><p>web: Flask page responses and rendered HTML.</p></li>
+<li><p>buttons: button routes, busy responses, and pull coordination.</p></li>
+<li><p>analysis: analysis labels, values, and formatting.</p></li>
+<li><p>db: PostgreSQL persistence and database behavior.</p></li>
+<li><p>integration: behavior across application layers.</p></li>
+</ul>
+<p>The collection hook rejects tests without an allowed marker.
+Strict marker checking also rejects unregistered marker names.</p>
+</section>
+<section id="stable-selectors">
+<h2>Stable selectors<a class="headerlink" href="#stable-selectors" title="Link to this heading"></a></h2>
+<p>Page tests locate the buttons using these HTML attributes:</p>
+<ul class="simple">
+<li><p>data-testid=”pull-data-btn”</p></li>
+<li><p>data-testid=”update-analysis-btn”</p></li>
+</ul>
+<p>BeautifulSoup inspects rendered HTML. Flask’s test client sends
+requests without starting a development server.</p>
+</section>
+<section id="fixtures-and-test-doubles">
+<h2>Fixtures and test doubles<a class="headerlink" href="#fixtures-and-test-doubles" title="Link to this heading"></a></h2>
+<p>Shared fixtures live in tests/conftest.py.</p>
+<p>Application tests inject controlled query, status, and pull services
+through create_app configuration:</p>
+<ul class="simple">
+<li><p>QUERY_RESULTS_FN supplies analysis results.</p></li>
+<li><p>GET_STATUS_FN supplies idle or busy status.</p></li>
+<li><p>START_PULL_FN controls pull startup.</p></li>
+</ul>
+<p>Scraper tests mock browser operations and use controlled HTML,
+saved state, and temporary files. Tests do not scrape the live website.</p>
+</section>
+<section id="postgresql-isolation">
+<h2>PostgreSQL isolation<a class="headerlink" href="#postgresql-isolation" title="Link to this heading"></a></h2>
+<p>TEST_DATABASE_URL identifies the dedicated test database.
+Database fixtures check that its name ends in _test before resetting
+the applicants table.</p>
+<p>Database tests verify inserts, duplicate prevention, and rollback.
+Integration tests exercise pull, query refresh, and rendered output
+using real PostgreSQL queries.</p>
+<p>Use a disposable test database. Do not configure these tests against
+an application database containing data you want to retain.</p>
+</section>
+<section id="coverage-evidence-and-ci">
+<h2>Coverage evidence and CI<a class="headerlink" href="#coverage-evidence-and-ci" title="Link to this heading"></a></h2>
+<p>coverage_summary.txt stores terminal verification output.
+Statement coverage confirms that executable statements were exercised;
+it does not prove every possible input or branch is correct.</p>
+<p>The root .github/workflows/tests.yml workflow installs dependencies,
+starts PostgreSQL, and runs the marked suite with the coverage gate.</p>
+<p>actions_success.png records a successful GitHub Actions run.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="api.html" class="btn btn-neutral float-left" title="API reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
