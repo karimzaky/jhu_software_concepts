@@ -8,6 +8,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from sqlalchemy import Date, Float, Integer, String, URL, create_engine
 from sqlalchemy import func, select
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -33,6 +34,12 @@ DATABASE_URL = os.getenv("DATABASE_URL") or URL.create(
     port=int(os.getenv("DB_PORT", "5432")),
     database=os.getenv("DB_NAME", "gradcafe_module3"),
 )
+
+
+# Use the psycopg 3 driver for both environment URLs and local settings.
+if isinstance(DATABASE_URL, str):
+    DATABASE_URL = make_url(DATABASE_URL)
+DATABASE_URL = DATABASE_URL.set(drivername="postgresql+psycopg")
 
 
 # The Engine manages database connections for SQLAlchemy.
