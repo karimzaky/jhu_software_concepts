@@ -74,3 +74,18 @@ def orm_query(postgres_db, monkeypatch):
         yield orm_queries.collect_all_analysis_results
     finally:
         test_engine.dispose()
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(items):
+    """Reject tests without an assignment-approved marker."""
+    allowed = {"web", "buttons", "analysis", "db", "integration"}
+    unmarked = [
+        item.nodeid
+        for item in items
+        if not any(mark.name in allowed for mark in item.iter_markers())
+    ]
+    if unmarked:
+        raise pytest.UsageError(
+            "Tests missing required markers: " + ", ".join(unmarked)
+        )
