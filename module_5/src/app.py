@@ -9,10 +9,7 @@ from flask import (
     Flask,
     current_app,
     jsonify,
-    flash,
-    redirect,
     render_template,
-    url_for,
 )
 
 from orm_queries import collect_all_analysis_results

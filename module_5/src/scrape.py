@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+import argparse
 import json
+import re
+import subprocess
+import time
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urljoin, urlparse
-import subprocess
-import re
+
 from bs4 import BeautifulSoup
-import time
-import argparse
 
 BASE_URL = "https://www.thegradcafe.com"
 SURVEY_PATH = "/survey"
@@ -143,7 +144,6 @@ def _wait_for_survey_page(
         "GradCafe did not render a new results table within "
         f"{timeout_seconds} seconds: {expected_url}"
     )
-    
 
 def _get_active_chrome_page() -> tuple[str, str]:
     """Return the URL and rendered HTML from the active Chrome tab."""
