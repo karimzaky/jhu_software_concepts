@@ -15,3 +15,12 @@ module_4/captured_pages/
 module_4/scrape_state.json
 module_4_source.zip
 module_4/docs/build/html/.doctrees/
+# Module 5 local data and generated caches
+module_5/applicant_data.json
+module_5/captured_pages/
+module_5/scrape_state.json
+module_5/.coverage
+module_5/htmlcov/
+module_5/docs/_build/
+module_5.zip
+module_5/docs/build/

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>GradCafe Applicant Analysis</title>
+
+    <!--
+        url_for() asks Flask to generate the correct URL for the
+        stylesheet stored inside the static directory.
+    -->
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+    <script src="{{ url_for('static', filename='analysis.js') }}" defer></script>
+</head>
+
+<body>
+    <header class="page-header">
+        <div class="header-content">
+            <div>
+                <p class="eyebrow">JHU Modern Software Concepts</p>
+                <h1>GradCafe Applicant Analysis</h1>
+                <p class="header-description">
+                    Dynamic analysis of applicant results stored
+                    in PostgreSQL and queried through SQLAlchemy.
+                </p>
+            </div>
+
+            <!--
+                Pull Data starts the background scraper. Update Analysis
+                re-queries PostgreSQL using the latest stored data.
+            -->
+            <div class="header-actions">
+                <form
+                    action="{{ url_for('pull_data') }}"
+                    method="post"
+                >
+                    <button
+                        class="button button-secondary"
+                        data-testid="pull-data-btn"
+                        type="submit"
+                        {% if scrape_status.running %}disabled{% endif %}
+                    >
+                        {% if scrape_status.running %}
+                            Pulling Data...
+                        {% else %}
+                            Pull Data
+                        {% endif %}
+                    </button>
+                </form>
+
+                <form
+                    action="{{ url_for('update_analysis') }}"
+                    method="post"
+                >
+                    <button
+                        class="button button-primary"
+                        data-testid="update-analysis-btn"
+                        type="submit"
+                    >
+                        Update Analysis
+                    </button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-content">
+        <!--
+            Flask flash messages provide feedback after either header
+            button sends a POST request to the application.
+        -->
+        {% with messages = get_flashed_messages(
+            with_categories=true
+        ) %}
+            {% if messages %}
+                <section
+                    class="messages"
+                    aria-label="Status messages"
+                >
+                    {% for category, message in messages %}
+                        <div class="message message-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        {% endwith %}
+
+        <!--
+            This panel displays the persistent state of the background
+            scraper independently from temporary flash messages.
+        -->
+        {% if scrape_status %}
+            {% if scrape_status.error %}
+                {% set status_class = "status-error" %}
+            {% elif scrape_status.running %}
+                {% set status_class = "status-running" %}
+            {% else %}
+                {% set status_class = "status-idle" %}
+            {% endif %}
+
+            <section
+                class="scrape-status {{ status_class }}"
+                aria-label="Data pull status"
+            >
+                <div>
+                    <p class="scrape-status-label">
+                        Data Pull Status
+                    </p>
+
+                    <p class="scrape-status-message">
+                        {{ scrape_status.message }}
+                    </p>
+
+                    {% if scrape_status.error %}
+                        <p class="scrape-status-detail">
+                            Error: {{ scrape_status.error }}
+                        </p>
+                    {% elif scrape_status.last_finished %}
+                        <p class="scrape-status-detail">
+                            Last completed:
+                            {{ scrape_status.last_finished }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <span
+                    class="status-indicator"
+                    aria-hidden="true"
+                ></span>
+            </section>
+        {% endif %}
+
+        {% if results %}
+            <section class="section">
+                <div class="section-heading">
+                    <div>
+                        <p class="section-number">
+                            Questions 1-3
+                        </p>
+                        <h2>Applicant Overview</h2>
+                    </div>
+
+                    <p class="updated-time">
+                        Updated {{ updated_at }}
+                    </p>
+                </div>
+
+                <div class="metric-grid">
+                    <article class="metric-card">
+                        <p class="metric-label">
+                            Fall 2026 applicants
+                        </p>
+                        <p class="metric-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.fall_2026_count }}
+                        </p>
+                    </article>
+
+                    <article class="metric-card">
+                        <p class="metric-label">
+                            International applicants
+                        </p>
+                        <p class="metric-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.percent_international }}
+                        </p>
+                    </article>
+
+                    <article class="metric-card">
+                        <p class="metric-label">Average GPA</p>
+                        <p class="metric-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.average_gpa }}
+                        </p>
+                    </article>
+
+                    <article class="metric-card">
+                        <p class="metric-label">
+                            Average GRE Quantitative
+                        </p>
+                        <p class="metric-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.average_gre }}
+                        </p>
+                    </article>
+
+                    <article class="metric-card">
+                        <p class="metric-label">
+                            Average GRE Verbal
+                        </p>
+                        <p class="metric-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.average_gre_v }}
+                        </p>
+                    </article>
+
+                    <article class="metric-card">
+                        <p class="metric-label">
+                            Average GRE Analytical Writing
+                        </p>
+                        <p class="metric-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.average_gre_aw }}
+                        </p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="section-heading">
+                    <div>
+                        <p class="section-number">
+                            Questions 4-7
+                        </p>
+                        <h2>Focused Applicant Analysis</h2>
+                    </div>
+                </div>
+
+                <div class="analysis-grid">
+                    <article class="analysis-card">
+                        <p class="question-number">Question 4</p>
+                        <h3>
+                            American Fall 2026 average GPA
+                        </h3>
+                        <p class="analysis-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.american_fall_2026_gpa }}
+                        </p>
+                    </article>
+
+                    <article class="analysis-card">
+                        <p class="question-number">Question 5</p>
+                        <h3>
+                            Fall 2025 acceptance percentage
+                        </h3>
+                        <p class="analysis-value">
+                            <span class="answer-label">Answer:</span>
+                            {{
+                                results
+                                .fall_2025_acceptance_percentage
+                            }}
+                        </p>
+                    </article>
+
+                    <article class="analysis-card">
+                        <p class="question-number">Question 6</p>
+                        <h3>
+                            Accepted Fall 2026 average GPA
+                        </h3>
+                        <p class="analysis-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.accepted_fall_2026_gpa }}
+                        </p>
+                    </article>
+
+                    <article class="analysis-card">
+                        <p class="question-number">Question 7</p>
+                        <h3>
+                            Johns Hopkins Computer Science
+                            master's entries
+                        </h3>
+                        <p class="analysis-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.jhu_cs_masters_count }}
+                        </p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="section-heading">
+                    <div>
+                        <p class="section-number">
+                            Questions 8-9
+                        </p>
+                        <h2>Original and LLM Field Comparison</h2>
+                    </div>
+                </div>
+
+                <div class="comparison-panel">
+                    <div class="comparison-item">
+                        <p class="question-number">Question 8</p>
+                        <p class="comparison-label">
+                            Original-field count
+                        </p>
+                        <p class="analysis-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.original_field_count }}
+                        </p>
+                    </div>
+
+                    <div class="comparison-item">
+                        <p class="question-number">Question 9</p>
+                        <p class="comparison-label">
+                            LLM-field count
+                        </p>
+                        <p class="analysis-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.llm_field_count }}
+                        </p>
+                    </div>
+
+                    <div class="comparison-item">
+                        <p class="question-number">
+                            Difference
+                        </p>
+                        <p class="comparison-label">
+                            LLM count minus original count
+                        </p>
+                        <p class="analysis-value">
+                            <span class="answer-label">Answer:</span>
+                            {{ results.field_count_difference }}
+                        </p>
+                    </div>
+                </div>
+
+                <p class="context-note">
+                    These counts cover accepted Fall 2026 Computer
+                    Science PhD entries at Georgetown, MIT, Stanford,
+                    and Carnegie Mellon.
+                </p>
+            </section>
+
+            <section class="section">
+                <div class="section-heading">
+                    <div>
+                        <p class="section-number">
+                            Original Question 1
+                        </p>
+                        <h2>
+                            Fall 2026 Acceptance Percentages
+                        </h2>
+                    </div>
+                </div>
+
+                <p class="answer-label">Answer:</p>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Applicant group</th>
+                                <th>Total entries</th>
+                                <th>Accepted entries</th>
+                                <th>Acceptance percentage</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for row in
+                                results.nationality_results %}
+                                <tr>
+                                    <td>{{ row.group }}</td>
+                                    <td>{{ row.total }}</td>
+                                    <td>{{ row.accepted }}</td>
+                                    <td>{{ row.percentage }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="section-heading">
+                    <div>
+                        <p class="section-number">
+                            Original Question 2
+                        </p>
+                        <h2>
+                            Universities with the Most Reported
+                            Fall 2026 Acceptances
+                        </h2>
+                    </div>
+                </div>
+
+                <p class="answer-label">Answer:</p>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>University</th>
+                                <th>Reported acceptances</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for row in
+                                results.top_universities %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ row.university }}</td>
+                                    <td>
+                                        {{ row.accepted_entries }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="context-note">
+                    Results reflect anonymous, self-reported GradCafe
+                    entries and are not official university acceptance
+                    totals or acceptance rates.
+                </p>
+            </section>
+        {% else %}
+            <section class="error-panel">
+                <h2>Analysis unavailable</h2>
+                <p>
+                    The application could not retrieve results from
+                    PostgreSQL. Confirm that the database is running
+                    and that the environment settings are correct.
+                </p>
+            </section>
+        {% endif %}
+    </main>
+
+    <footer class="page-footer">
+        <p>
+            Module 3 - Database Queries, SQLAlchemy, and
+            Dynamic Webpages
+        </p>
+    </footer>
+</body>
+</html>
