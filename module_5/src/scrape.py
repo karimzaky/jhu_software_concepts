@@ -430,10 +430,9 @@ def scrape_data(
     max_pages: int | None = None,
 ) -> list[dict[str, Any]]:
     """Capture, parse, deduplicate, and checkpoint GradCafe records."""
-    existing_records = load_data()
     records_by_url = {
         record["url"]: record
-        for record in existing_records
+        for record in load_data()
         if record.get("url")
     }
 
@@ -472,8 +471,7 @@ def scrape_data(
         for record in page_records:
             records_by_url[record["url"]] = record
 
-        all_records = list(records_by_url.values())
-        save_data(all_records)
+        save_data(list(records_by_url.values()))
 
         pages_processed += 1
         new_records = len(records_by_url) - records_before
