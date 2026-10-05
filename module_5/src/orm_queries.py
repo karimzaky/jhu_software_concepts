@@ -1,6 +1,7 @@
 """Repeat selected Module 3 analyses using SQLAlchemy ORM."""
 
 from sqlalchemy import func, or_, select
+from sqlalchemy.sql.functions import count
 
 from models import Applicant, SessionLocal
 
@@ -12,7 +13,7 @@ def get_question_1(session):
     SQLAlchemy builds the SQL statement from the Applicant model.
     """
     statement = (
-        select(func.count(Applicant.p_id))
+        select(count(Applicant.p_id))
         .where(
             func.lower(func.trim(Applicant.term)) == "fall 2026"
         )
@@ -36,11 +37,11 @@ def get_question_2(session):
         & (func.trim(Applicant.us_or_international) != "")
     )
 
-    international_count = func.count(
+    international_count = count(
         Applicant.p_id
     ).filter(international_condition)
 
-    usable_count = func.count(
+    usable_count = count(
         Applicant.p_id
     ).filter(usable_classification)
 
@@ -101,11 +102,11 @@ def get_question_5(session):
         func.trim(Applicant.status)
     ).like("accepted%")
 
-    accepted_count = func.count(Applicant.p_id).filter(
+    accepted_count = count(Applicant.p_id).filter(
         accepted_condition
     )
 
-    total_count = func.count(Applicant.p_id)
+    total_count = count(Applicant.p_id)
 
     percentage_expression = (
         100.0
@@ -155,7 +156,7 @@ def get_question_7(session):
     )
 
     statement = (
-        select(func.count(Applicant.p_id))
+        select(count(Applicant.p_id))
         .where(
             johns_hopkins_condition,
             Applicant.program.ilike(
@@ -226,7 +227,7 @@ def get_question_8(session):
     contribute to the count.
     """
     statement = (
-        select(func.count(Applicant.p_id))
+        select(count(Applicant.p_id))
         .where(
             func.lower(func.trim(Applicant.term)) == "fall 2026",
             func.lower(
@@ -249,7 +250,7 @@ def get_question_9(session):
     fields, as required by the assignment.
     """
     statement = (
-        select(func.count(Applicant.p_id))
+        select(count(Applicant.p_id))
         .where(
             func.lower(func.trim(Applicant.term)) == "fall 2026",
             func.lower(
@@ -277,11 +278,11 @@ def get_original_question(session):
         func.trim(Applicant.status)
     ).like("accepted%")
 
-    accepted_count = func.count(Applicant.p_id).filter(
+    accepted_count = count(Applicant.p_id).filter(
         accepted_condition
     )
 
-    total_count = func.count(Applicant.p_id)
+    total_count = count(Applicant.p_id)
 
     acceptance_percentage = (
         100.0
@@ -322,7 +323,7 @@ def get_question_11(session):
             Applicant.llm_generated_university.label(
                 "university"
             ),
-            func.count(Applicant.p_id).label(
+            count(Applicant.p_id).label(
                 "accepted_entries"
             ),
         )
@@ -342,7 +343,7 @@ def get_question_11(session):
             Applicant.llm_generated_university
         )
         .order_by(
-            func.count(Applicant.p_id).desc(),
+            count(Applicant.p_id).desc(),
             Applicant.llm_generated_university,
         )
         .limit(5)

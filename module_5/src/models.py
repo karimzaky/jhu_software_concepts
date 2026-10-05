@@ -7,7 +7,8 @@ from typing import Optional
 
 from dotenv import load_dotenv
 from sqlalchemy import Date, Float, Integer, String, URL, create_engine
-from sqlalchemy import func, select
+from sqlalchemy import select
+from sqlalchemy.sql.functions import count
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -170,11 +171,11 @@ def test_model_connection():
     """
     Test the ORM mapping by counting Applicant objects.
 
-    This uses SQLAlchemy's select() and func.count(), not raw SQL.
+    This uses SQLAlchemy's select() and count(), not raw SQL.
     """
     with SessionLocal() as session:
         applicant_count = session.scalar(
-            select(func.count(Applicant.p_id))
+            select(count(Applicant.p_id))
         )
 
     print(f"SQLAlchemy Applicant count: {applicant_count:,}")
