@@ -241,20 +241,18 @@ def create_metric_table(
 def generate_pdf():
     """Query current results and create the limitations report."""
     analysis = collect_all_analysis_results()
-    database_count = get_database_count()
 
     missing_gpa, missing_gre, missing_gre_v, missing_gre_aw = (
         get_missing_value_counts()
     )
 
     percent_international = analysis["question_2"]
-    nationality_rows = analysis["original_question"]
 
     acceptance_by_group = {
         row.applicant_group.lower(): float(
             row.acceptance_percentage
         )
-        for row in nationality_rows
+        for row in analysis["original_question"]
     }
 
     american_acceptance = acceptance_by_group["american"]
@@ -263,7 +261,6 @@ def generate_pdf():
     ]
 
     original_field_count = analysis["question_8"]
-    llm_field_count = analysis["question_9"]
 
     styles = build_styles()
 
@@ -289,7 +286,7 @@ def generate_pdf():
         ),
         create_metric_table(
             styles,
-            database_count,
+            get_database_count(),
             percent_international,
             american_acceptance,
             international_acceptance,
