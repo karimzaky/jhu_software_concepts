@@ -1,5 +1,7 @@
 """Generate and validate query_results.pdf for Module 3."""
 
+from dataclasses import dataclass
+
 from pathlib import Path
 from xml.sax.saxutils import escape
 
@@ -233,17 +235,24 @@ def add_page_number(canvas, document):
     canvas.restoreState()
 
 
-def add_question(
-    story,
-    styles,
-    number,
-    question,
-    result,
-    sql,
-    explanation,
-    add_page_break=True,
-):
+@dataclass
+class QuestionSection:
+    """Hold the content required for one PDF question section."""
+
+    number: int
+    question: str
+    result: str
+    sql: str
+    explanation: str
+
+
+def add_question(story, styles, section, add_page_break=True):
     """Add one complete question section to the PDF."""
+    number = section.number
+    question = section.question
+    result = section.result
+    sql = section.sql
+    explanation = section.explanation
     story.append(
         Paragraph(
             f"Question {number}",
@@ -345,18 +354,18 @@ def build_pdf(results):
     add_question(
         story,
         styles,
-        1,
+        QuestionSection(1,
         "How many entries are from applicants who applied for Fall 2026?",
         f"Fall 2026 applicant count: {results['q1']:,}",
         QUESTION_1_SQL,
         "The query standardizes the term with LOWER and TRIM, filters "
-        "the table to Fall 2026, and counts every matching row.",
+        "the table to Fall 2026, and counts every matching row."),
     )
 
     add_question(
         story,
         styles,
-        2,
+        QuestionSection(2,
         "Among entries that provide a nationality classification, what "
         "percentage are international students?",
         f"Percent international: {results['q2']:.2f}%",
@@ -364,13 +373,13 @@ def build_pdf(results):
         "The numerator counts entries classified as International. "
         "The denominator includes every nonblank nationality "
         "classification, including American and Other, while excluding "
-        "missing values. NULLIF prevents division by zero.",
+        "missing values. NULLIF prevents division by zero."),
     )
 
     add_question(
         story,
         styles,
-        3,
+        QuestionSection(3,
         "What are the average GPA, GRE Quantitative, GRE Verbal, and "
         "GRE Analytical Writing scores of applicants who provide each metric?",
         (
@@ -382,13 +391,13 @@ def build_pdf(results):
         QUESTION_3_SQL,
         "Each AVG calculation operates independently. PostgreSQL ignores "
         "NULL values, so an applicant contributes to any average for "
-        "which that applicant supplied a usable value.",
+        "which that applicant supplied a usable value."),
     )
 
     add_question(
         story,
         styles,
-        4,
+        QuestionSection(4,
         "What is the average GPA of American applicants who applied for "
         "Fall 2026?",
         (
@@ -398,25 +407,25 @@ def build_pdf(results):
         QUESTION_4_SQL,
         "The query simultaneously restricts records to Fall 2026, "
         "American applicants, and records with a usable GPA. AVG then "
-        "calculates the mean of those matching GPA values.",
+        "calculates the mean of those matching GPA values."),
     )
 
     add_question(
         story,
         styles,
-        5,
+        QuestionSection(5,
         "What percentage of Fall 2025 entries are acceptances?",
         f"Fall 2025 acceptance percentage: {results['q5']:.2f}%",
         QUESTION_5_SQL,
         "The main WHERE clause defines all Fall 2025 entries as the "
         "denominator. The filtered count includes statuses beginning "
-        "with Accepted as the numerator.",
+        "with Accepted as the numerator."),
     )
 
     add_question(
         story,
         styles,
-        6,
+        QuestionSection(6,
         "What is the average GPA of accepted applicants who applied for "
         "Fall 2026?",
         (
@@ -425,13 +434,13 @@ def build_pdf(results):
         ),
         QUESTION_6_SQL,
         "The query requires Fall 2026, an acceptance status, and a "
-        "nonmissing GPA before calculating the average.",
+        "nonmissing GPA before calculating the average."),
     )
 
     add_question(
         story,
         styles,
-        7,
+        QuestionSection(7,
         "How many entries are from applicants who applied to Johns "
         "Hopkins University for a master's degree in Computer Science?",
         (
@@ -442,13 +451,13 @@ def build_pdf(results):
         "The query uses the original program and degree fields. It "
         "recognizes both Johns Hopkins University and the standalone "
         "abbreviation JHU, requires Computer Science, and restricts the "
-        "degree to Masters.",
+        "degree to Masters."),
     )
 
     add_question(
         story,
         styles,
-        8,
+        QuestionSection(8,
         "How many Fall 2026 entries are acceptances from applicants "
         "applying for a Computer Science PhD at Georgetown, MIT, "
         "Stanford, or Carnegie Mellon using the original fields?",
@@ -457,13 +466,13 @@ def build_pdf(results):
         "The query requires all five conditions at the same time: Fall "
         "2026, acceptance, PhD, Computer Science, and one of the four "
         "listed universities. University and program matching use the "
-        "original combined program field.",
+        "original combined program field."),
     )
 
     add_question(
         story,
         styles,
-        9,
+        QuestionSection(9,
         "Repeat Question 8 using the LLM-generated program and university "
         "fields, and compare the results.",
         (
@@ -477,13 +486,13 @@ def build_pdf(results):
         "LLM-generated fields. The counts are equal, suggesting that "
         "the LLM normalization did not change the qualifying set for "
         "this specific analysis. Individual labels can still contain "
-        "normalization errors even when the final count is unchanged.",
+        "normalization errors even when the final count is unchanged."),
     )
 
     add_question(
         story,
         styles,
-        10,
+        QuestionSection(10,
         "How do Fall 2026 acceptance percentages compare between "
         "American and international applicants?",
         format_question_10(results["q10"]),
@@ -492,13 +501,13 @@ def build_pdf(results):
         "For each group, it counts all entries and accepted entries, then "
         "calculates the acceptance percentage. These self-reported "
         "percentages describe the GradCafe data and should not be treated "
-        "as official population acceptance rates.",
+        "as official population acceptance rates."),
     )
 
     add_question(
         story,
         styles,
-        11,
+        QuestionSection(11,
         "Which five universities have the most reported Fall 2026 "
         "acceptances?",
         format_question_11(results["q11"]),
@@ -507,7 +516,7 @@ def build_pdf(results):
         "university field, orders the groups by their reported acceptance "
         "counts, and returns the five largest groups. The results measure "
         "reporting frequency in this dataset rather than official "
-        "university acceptance totals.",
+        "university acceptance totals."),
         add_page_break=False,
     )
 

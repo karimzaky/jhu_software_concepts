@@ -50,19 +50,21 @@ engine = create_engine(
 )
 
 
-# SessionLocal is a factory for SQLAlchemy Session objects.
-SessionLocal = sessionmaker(
+# SESSION_FACTORY is a factory for SQLAlchemy Session objects.
+SESSION_FACTORY = sessionmaker(
     bind=engine,
     expire_on_commit=False,
 )
 
 
-class Base(DeclarativeBase):
+# ORM mapping classes expose fields rather than service methods.
+class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
     """Base class inherited by every SQLAlchemy model."""
 
 
 
-class Applicant(Base):
+# ORM mapping classes expose fields rather than service methods.
+class Applicant(Base):  # pylint: disable=too-few-public-methods
     """
     Map the existing PostgreSQL applicants table to a Python class.
 
@@ -173,7 +175,7 @@ def test_model_connection():
 
     This uses SQLAlchemy's select() and count(), not raw SQL.
     """
-    with SessionLocal() as session:
+    with SESSION_FACTORY() as session:
         applicant_count = session.scalar(
             select(count(Applicant.p_id))
         )
