@@ -1,79 +1,61 @@
-Testing guide
-=============
+Testing and security verification
+=================================
 
-Run the suite
--------------
+Run from module_5 with PostgreSQL running. Create a separate disposable
+test database if it does not already exist::
 
-Run from the repository root with the virtual environment active
-and PostgreSQL running::
+    createdb gradcafe_module5_test
+    TEST_DATABASE_URL=postgresql:///gradcafe_module5_test .venv-pip/bin/python -m pytest
 
-    TEST_DATABASE_URL=postgresql:///gradcafe_module4_test python -m pytest -c module_4/pytest.ini module_4/tests -m "web or buttons or analysis or db or integration"
+Use the corresponding .venv-uv/bin/python for the alternate environment.
+Fixtures reject database names that do not end in _test and reset the
+test table. Do not use the application database for tests.
 
-pytest.ini enables coverage of module_4/src, reports missing statements,
-and requires 100 percent statement coverage.
+pytest.ini enables strict markers and requires 100 percent statement
+coverage of src. Every test carries a web, buttons, analysis, db, or
+integration marker. Tests inject services and mock browser operations;
+database integration tests execute real SQL against the test database.
 
-Test markers
-------------
+SQL safety tests exercise malicious values, identifier allowlists,
+parameter binding, malformed limits, and bounded raw SQL and ORM reads.
+Schema setup tests verify that creation is an explicit administrative
+operation rather than part of ordinary data loading.
 
-Every test carries at least one registered assignment marker:
+Local verification
+------------------
 
-* web: Flask page responses and rendered HTML.
-* buttons: button routes, busy responses, and pull coordination.
-* analysis: analysis labels, values, and formatting.
-* db: PostgreSQL persistence and database behavior.
-* integration: behavior across application layers.
+Both fresh pip and uv environments passed 167 tests, reached 100 percent
+statement coverage, and achieved Pylint 10.00/10::
 
-The collection hook rejects tests without an allowed marker.
-Strict marker checking also rejects unregistered marker names.
+    .venv-pip/bin/python -m pylint src --fail-under=10
 
-Stable selectors
+Statement coverage does not establish exhaustive branch or input coverage.
+Narrow source-level lint exceptions explain intentional framework and
+error-boundary patterns.
+
+Dependency graph
 ----------------
 
-Page tests locate the buttons using these HTML attributes:
+::
 
-* data-testid="pull-data-btn"
-* data-testid="update-analysis-btn"
+    PYTHONPATH=src .venv-pip/bin/python -m pydeps src/app.py --noshow -T svg -o dependency.svg
 
-BeautifulSoup inspects rendered HTML. Flask's test client sends
-requests without starting a development server.
+Graphviz must be on PATH. The graph follows imports from the application
+entry point and does not include every standalone utility.
 
-Fixtures and test doubles
--------------------------
-
-Shared fixtures live in tests/conftest.py.
-
-Application tests inject controlled query, status, and pull services
-through create_app configuration:
-
-* QUERY_RESULTS_FN supplies analysis results.
-* GET_STATUS_FN supplies idle or busy status.
-* START_PULL_FN controls pull startup.
-
-Scraper tests mock browser operations and use controlled HTML,
-saved state, and temporary files. Tests do not scrape the live website.
-
-PostgreSQL isolation
+Snyk and CI evidence
 --------------------
 
-TEST_DATABASE_URL identifies the dedicated test database.
-Database fixtures check that its name ends in _test before resetting
-the applicants table.
+::
 
-Database tests verify inserts, duplicate prevention, and rollback.
-Integration tests exercise pull, query refresh, and rendered output
-using real PostgreSQL queries.
+    snyk test --file=requirements.txt --command=.venv-pip/bin/python
 
-Use a disposable test database. Do not configure these tests against
-an application database containing data you want to retain.
+The successful CI scan tested 53 dependencies and reported zero issues.
+The screenshot is snyk-analysis.png. Local scan attempts previously
+failed in service processing and did not produce vulnerability results.
 
-Coverage evidence and CI
-------------------------
-
-coverage_summary.txt stores terminal verification output.
-Statement coverage confirms that executable statements were exercised;
-it does not prove every possible input or branch is correct.
-
-The root .github/workflows/tests.yml workflow installs dependencies,
-starts PostgreSQL, and runs the marked suite with the coverage gate.
-
-actions_success.png records a successful GitHub Actions run.
+The root .github/workflows/ci.yml checks Pylint, graph generation and
+validation, Snyk, and pytest. It uses a PostgreSQL 18 test service and
+SNYK_TOKEN from repository Actions secrets. actions_success.png records
+the successful run. CI uploads pylint_ci.txt, dependency.svg,
+snyk_ci.txt, and coverage_summary.txt as verification artifacts.

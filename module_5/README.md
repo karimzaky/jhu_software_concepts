@@ -127,15 +127,37 @@ scrape and load_data, and sql_safety centralizes shared query safety helpers.
 
 The existing published Module 4 documentation remains available at
 https://karim-zaky-module-4-gradcafe.readthedocs.io/en/latest/.
-Module 5 documentation and final scan/CI evidence are still being completed.
+Module 5 documentation sources are in docs/source and can be built locally.
 
 ```bash
 .venv-pip/bin/python -m sphinx -E -W --keep-going -b html docs/source docs/build/html
 ```
 
-The final report will cover installation, packaging, dependency relationships,
-SQL defenses, permissions, and CI. Snyk scan results and workflow evidence will
-be added after verification.
+## Security and CI Evidence
+
+The root `.github/workflows/ci.yml` runs separate checks for Pylint 10/10,
+graph generation and SVG validation, Snyk dependency scanning, and pytest
+with 100% coverage. Its PostgreSQL service is a disposable test database.
+Configure `SNYK_TOKEN` as a repository Actions secret, never in source files.
+The run at commit `c8efdce` succeeded. CI uploads the verification logs
+and generated graph as the `module-5-verification` artifact.
+
+Snyk scanned 53 dependencies and reported zero issues with no vulnerable
+paths found; no remediation was required by that scan. Earlier local
+scan attempts failed before producing results, so successful CI output
+is the scan evidence.
+
+- `snyk-analysis.png`: successful dependency scan results.
+- `actions_success.png`: successful Module 5 workflow.
+- `database_privileges.txt`: least-privilege verification.
+- `coverage_summary.txt`: test and coverage evidence.
+- `module_5_report.pdf`: required installation and security explanations.
+
+To scan locally:
+
+```bash
+snyk test --file=requirements.txt --command=.venv-pip/bin/python
+```
 
 ## Repository
 

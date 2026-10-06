@@ -1,17 +1,10 @@
-Module 4 GradCafe Analysis
-==========================
+Module 5 Secure GradCafe Development
+====================================
 
-This application collects GradCafe applicant records, stores them in
-PostgreSQL, and displays analysis through a Flask web interface.
-
-Module 4 adds automated verification of the web page, interactive buttons,
-analysis formatting, database operations, and integration flows.
-
-Documentation
--------------
-
-The documentation covers developer setup, the web/ETL/database architecture,
-an automatically generated API reference, and the testing workflow.
+The GradCafe application collects applicant records, stores them in
+PostgreSQL, and displays analysis through Flask. Module 5 adds safe SQL
+composition, parameter binding, bounded reads, least-privilege database
+access, packaging, dependency visualization, and security checks in CI.
 
 .. toctree::
    :maxdepth: 2

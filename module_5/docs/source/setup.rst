@@ -1,73 +1,73 @@
 Developer setup
 ===============
 
-Environment
------------
+Run all commands from module_5 using Python 3.13. PostgreSQL must be
+running. Graphviz is an external tool; on macOS install it with
+``brew install graphviz``. Live scraping requires macOS and Chrome.
 
-Use Python 3.13 and a running PostgreSQL server. Run commands from
-the repository root.
+Fresh pip installation
+----------------------
 
-Create and activate a virtual environment, then install dependencies::
+::
 
-    python3.13 -m venv .venv
-    source .venv/bin/activate
-    python -m pip install -r module_4/requirements.txt
+    python3.13 -m venv .venv-pip
+    .venv-pip/bin/python -m pip install -r requirements.txt
+    .venv-pip/bin/python -m pip install --no-deps -e .
+    .venv-pip/bin/python -m pip check
+
+Fresh uv installation
+---------------------
+
+::
+
+    uv venv --python python3.13 .venv-uv
+    uv pip install --python .venv-uv/bin/python -r requirements.txt
+    uv pip install --python .venv-uv/bin/python --no-deps -e .
+    uv pip check --python .venv-uv/bin/python
+
+Both paths use editable installs. Requirements use compatible version
+ranges rather than an exact dependency lock.
 
 Database configuration
 ----------------------
 
-Create a database for the application::
+Copy .env.example to .env and set DB_NAME, DB_USER, DB_PASSWORD, DB_HOST,
+and DB_PORT. DATABASE_URL overrides the separate settings when supplied.
+Do not commit .env. Use gradcafe_module5 and the restricted role
+gradcafe_module5_app.
 
-    createdb gradcafe_module4
+For a new database, an administrator creates the database and schema::
 
-Configure DATABASE_URL in module_4/.env::
+    createdb gradcafe_module5
+    DATABASE_URL=postgresql:///gradcafe_module5 .venv-pip/bin/python src/setup_database.py
 
-    DATABASE_URL=postgresql:///gradcafe_module4
+The administrator separately creates the application role and grants
+CONNECT, schema USAGE, table SELECT and INSERT, and sequence USAGE.
+The SQL and rationale are recorded in module_5_report.pdf. The normal
+loader does not create tables. Place applicant_data.json in module_5,
+then load records using the configured application role::
 
-This local connection uses the current operating-system user.
-Adjust the URL for your PostgreSQL credentials and host.
-Keep .env out of version control.
+    .venv-pip/bin/python src/load_data.py
 
-Load applicant records
-----------------------
-
-Place applicant_data.json in module_4/, then run::
-
-    PYTHONPATH=module_4/src python module_4/src/load_data.py
-
-The loader creates the applicants table if needed and inserts usable
-records. Duplicate URLs do not create additional rows.
-The dataset is excluded from the public repository.
+Duplicate URLs do not create additional rows. Datasets are excluded
+from version control.
 
 Run the application
 -------------------
 
-Start the Flask development server::
+::
 
-    PYTHONPATH=module_4/src python module_4/src/app.py
+    .venv-pip/bin/gradcafe-module5
 
-Open http://127.0.0.1:5000/analysis in a browser.
-Use this server for local development.
-
-Run automated tests
--------------------
-
-Create a separate test database::
-
-    createdb gradcafe_module4_test
-
-Run the marked suite with coverage::
-
-    TEST_DATABASE_URL=postgresql:///gradcafe_module4_test python -m pytest -c module_4/pytest.ini module_4/tests -m "web or buttons or analysis or db or integration"
-
-Database fixtures reset test data. Use a dedicated database whose
-name ends in _test. Never point TEST_DATABASE_URL at application data.
+For uv use .venv-uv/bin/gradcafe-module5. Open
+http://127.0.0.1:5000/analysis and stop the server with Control+C.
 
 Build documentation
 -------------------
 
-Generate HTML with warnings treated as errors::
+::
 
-    python -m sphinx -W --keep-going -b html module_4/docs/source module_4/docs/build/html
+    .venv-pip/bin/python -m sphinx -E -W --keep-going -b html docs/source docs/build/html
 
-Open module_4/docs/build/html/index.html to view the documentation.
+Open docs/build/html/index.html. The repository-root Read the Docs
+configuration continues to publish the existing Module 4 documentation.
