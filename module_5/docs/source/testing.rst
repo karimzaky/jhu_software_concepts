@@ -27,7 +27,7 @@ Local verification
 Both fresh pip and uv environments passed 167 tests, reached 100 percent
 statement coverage, and achieved Pylint 10.00/10::
 
-    .venv-pip/bin/python -m pylint src --fail-under=10
+    PYTHONPATH=src .venv-pip/bin/python -m pylint src --fail-under=10
 
 Statement coverage does not establish exhaustive branch or input coverage.
 Narrow source-level lint exceptions explain intentional framework and

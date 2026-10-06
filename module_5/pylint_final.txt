@@ -1,33 +1,4 @@
-************* Module src.setup_database
-src/setup_database.py:3:0: E0401: Unable to import 'load_data' (import-error)
-************* Module src.generate_query_results
-src/generate_query_results.py:21:0: E0401: Unable to import 'pdf_support' (import-error)
-src/generate_query_results.py:22:0: E0401: Unable to import 'query_data' (import-error)
-************* Module src.clean
-src/clean.py:12:0: E0401: Unable to import 'scrape' (import-error)
-************* Module src.models
-src/models.py:21:0: E0401: Unable to import 'sql_safety' (import-error)
-************* Module src.orm_queries
-src/orm_queries.py:6:0: E0401: Unable to import 'sql_safety' (import-error)
-src/orm_queries.py:8:0: E0401: Unable to import 'models' (import-error)
-************* Module src.query_data
-src/query_data.py:5:0: E0401: Unable to import 'load_data' (import-error)
-src/query_data.py:6:0: E0401: Unable to import 'sql_safety' (import-error)
-************* Module src.app
-src/app.py:15:0: E0401: Unable to import 'orm_queries' (import-error)
-src/app.py:16:0: E0401: Unable to import 'scrape_manager' (import-error)
-************* Module src.generate_limitations
-src/generate_limitations.py:20:0: E0401: Unable to import 'pdf_support' (import-error)
-src/generate_limitations.py:21:0: E0401: Unable to import 'sql_safety' (import-error)
-src/generate_limitations.py:23:0: E0401: Unable to import 'load_data' (import-error)
-src/generate_limitations.py:24:0: E0401: Unable to import 'orm_queries' (import-error)
-************* Module src.scrape_manager
-src/scrape_manager.py:8:0: E0401: Unable to import 'sql_safety' (import-error)
-src/scrape_manager.py:10:0: E0401: Unable to import 'load_data' (import-error)
-src/scrape_manager.py:11:0: E0401: Unable to import 'scrape' (import-error)
-************* Module src.load_data
-src/load_data.py:12:0: E0401: Unable to import 'sql_safety' (import-error)
 
 -------------------------------------------------------------------
-Your code has been rated at 8.98/10 (previous run: 10.00/10, -1.02)
+Your code has been rated at 10.00/10 (previous run: 8.98/10, +1.02)
 

@@ -94,7 +94,7 @@ createdb gradcafe_module5_test
 
 ```bash
 TEST_DATABASE_URL=postgresql:///gradcafe_module5_test .venv-pip/bin/python -m pytest
-.venv-pip/bin/python -m pylint src --fail-under=10
+PYTHONPATH=src .venv-pip/bin/python -m pylint src --fail-under=10
 ```
 
 Use the corresponding `.venv-uv/bin/python` to verify the alternate environment.
