@@ -17,9 +17,9 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from pdf_support import build_report, add_body_style, add_title_style, validate_report
 from load_data import get_connection
 from orm_queries import collect_all_analysis_results
-
 
 # Store the PDF beside this generator script.
 BASE_DIR = Path(__file__).resolve().parent
@@ -90,18 +90,7 @@ def build_styles():
     """Create the paragraph styles used throughout the PDF."""
     styles = getSampleStyleSheet()
 
-    styles.add(
-        ParagraphStyle(
-            name="ReportTitle",
-            parent=styles["Title"],
-            fontName="Helvetica-Bold",
-            fontSize=22,
-            leading=27,
-            alignment=TA_CENTER,
-            textColor=NAVY,
-            spaceAfter=8,
-        )
-    )
+    add_title_style(styles, "ReportTitle", textColor=NAVY, spaceAfter=8)
 
     styles.add(
         ParagraphStyle(
@@ -128,16 +117,8 @@ def build_styles():
         )
     )
 
-    styles.add(
-        ParagraphStyle(
-            name="BodyTextCustom",
-            parent=styles["BodyText"],
-            fontName="Helvetica",
-            fontSize=10.5,
-            leading=16,
-            textColor=colors.HexColor("#1E293B"),
-            spaceAfter=12,
-        )
+    add_body_style(
+        styles, fontSize=10.5, leading=16, textColor=colors.HexColor("#1E293B"), spaceAfter=12
     )
 
     styles.add(
@@ -242,23 +223,17 @@ def generate_pdf():
     """Query current results and create the limitations report."""
     analysis = collect_all_analysis_results()
 
-    missing_gpa, missing_gre, missing_gre_v, missing_gre_aw = (
-        get_missing_value_counts()
-    )
+    missing_gpa, missing_gre, missing_gre_v, missing_gre_aw = get_missing_value_counts()
 
     percent_international = analysis["question_2"]
 
     acceptance_by_group = {
-        row.applicant_group.lower(): float(
-            row.acceptance_percentage
-        )
+        row.applicant_group.lower(): float(row.acceptance_percentage)
         for row in analysis["original_question"]
     }
 
     american_acceptance = acceptance_by_group["american"]
-    international_acceptance = acceptance_by_group[
-        "international"
-    ]
+    international_acceptance = acceptance_by_group["international"]
 
     original_field_count = analysis["question_8"]
 
@@ -364,42 +339,18 @@ def generate_pdf():
         ]
     )
 
-    document.build(
-        story,
-        onFirstPage=add_page_number,
-        onLaterPages=add_page_number,
-    )
+    build_report(document, story, add_page_number)
 
 
 def validate_pdf():
-    """Confirm that the PDF contains its required sections and results."""
-    reader = PdfReader(str(OUTPUT_FILE))
-    extracted_text = "\n".join(
-        page.extract_text() or ""
-        for page in reader.pages
-    )
-
+    """Verify this report using the shared content validator."""
     required_text = [
         "Data and Analysis Limitations",
         "Self-Reporting and Selection Bias",
         "Missing Values and Field Reliability",
         "descriptive patterns",
     ]
-
-    missing_text = [
-        value
-        for value in required_text
-        if value not in extracted_text
-    ]
-
-    if missing_text:
-        raise ValueError(
-            f"PDF validation failed. Missing text: {missing_text}"
-        )
-
-    print(f"PDF created: {OUTPUT_FILE.name}")
-    print(f"PDF pages: {len(reader.pages)}")
-    print("PDF text validation passed")
+    validate_report(OUTPUT_FILE, PdfReader(str(OUTPUT_FILE)), required_text)
 
 
 def main():

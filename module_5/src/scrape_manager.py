@@ -122,7 +122,8 @@ def _pull_data_worker():
             error=None,
         )
 
-    except Exception as error:
+    # Restore status and release the lock when the operation fails.
+    except Exception as error:  # pylint: disable=broad-exception-caught
         finished_time = datetime.now().strftime(
             "%B %d, %Y at %I:%M:%S %p"
         )
@@ -147,7 +148,8 @@ def start_data_pull():
     Return False when another scrape already owns the lock, preventing
     simultaneous Chrome navigation and duplicate scraping processes.
     """
-    lock_acquired = SCRAPE_LOCK.acquire(blocking=False)
+    # The worker owns this lock after launch and releases it in finally.
+    lock_acquired = SCRAPE_LOCK.acquire(blocking=False)  # pylint: disable=consider-using-with
 
     if not lock_acquired:
         return False
@@ -166,7 +168,8 @@ def start_data_pull():
             daemon=True,
         )
         worker.start()
-    except Exception as error:
+    # Restore status and release the lock when the operation fails.
+    except Exception as error:  # pylint: disable=broad-exception-caught
         _set_status(
             running=False,
             message="The data pull could not start.",

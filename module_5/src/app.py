@@ -121,7 +121,8 @@ def analysis():
             scrape_status=current_app.config.get("GET_STATUS_FN", get_scrape_status)(),
         )
 
-    except Exception:
+    # Contain service failures at the HTTP response boundary.
+    except Exception:  # pylint: disable=broad-exception-caught
         # Record the full error in the Flask terminal for debugging,
         # while showing the user a concise message.
         current_app.logger.exception(
@@ -146,7 +147,8 @@ def pull_data():
     try:
         if not start_pull():
             return jsonify(busy=True), 409
-    except Exception:
+    # Contain service failures at the HTTP response boundary.
+    except Exception:  # pylint: disable=broad-exception-caught
         current_app.logger.exception("Data pull failed to start.")
         return jsonify(ok=False), 500
 
@@ -164,7 +166,8 @@ def update_analysis():
     )
     try:
         query_results()
-    except Exception:
+    # Contain service failures at the HTTP response boundary.
+    except Exception:  # pylint: disable=broad-exception-caught
         current_app.logger.exception("Unable to update analysis.")
         return jsonify(ok=False), 500
 
