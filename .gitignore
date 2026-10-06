@@ -24,3 +24,6 @@ module_5/htmlcov/
 module_5/docs/_build/
 module_5.zip
 module_5/docs/build/
+module_5/.venv-pip/
+module_5/.venv-uv/
+module_5/src/*.egg-info/

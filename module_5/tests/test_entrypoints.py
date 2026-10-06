@@ -80,7 +80,7 @@ def populated_queries(orm_query, monkeypatch):
         term="Fall 2025",
     )
     load_data.load_records(records=[first, second, third])
-    monkeypatch.setattr(models, "SessionLocal", orm_queries.SessionLocal)
+    monkeypatch.setattr(models, "SESSION_FACTORY", orm_queries.SESSION_FACTORY)
     return orm_query
 
 

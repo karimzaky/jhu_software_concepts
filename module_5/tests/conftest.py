@@ -68,7 +68,7 @@ def orm_query(postgres_db, monkeypatch):
     url = make_url(postgres_db).set(drivername="postgresql+psycopg")
     test_engine = create_engine(url)
     test_sessions = sessionmaker(bind=test_engine, expire_on_commit=False)
-    monkeypatch.setattr(orm_queries, "SessionLocal", test_sessions)
+    monkeypatch.setattr(orm_queries, "SESSION_FACTORY", test_sessions)
 
     try:
         yield orm_queries.collect_all_analysis_results
