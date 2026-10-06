@@ -1,0 +1,10 @@
+PASS: Connected to gradcafe_module5 as gradcafe_module5_app
+PASS: No superuser, database creation, role creation, or RLS bypass
+PASS: SELECT permitted; 30,040 records
+PASS: INSERT and sequence access permitted
+PASS: CREATE TABLE denied
+PASS: ALTER TABLE denied
+PASS: DROP TABLE denied
+PASS: UPDATE denied
+PASS: DELETE denied
+PASS: Insert probe rolled back; record count unchanged

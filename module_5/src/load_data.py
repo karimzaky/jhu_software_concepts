@@ -49,8 +49,8 @@ def get_connection():
         return psycopg.connect(database_url)
 
     connection_settings = {
-        "dbname": os.getenv("DB_NAME", "gradcafe_module3"),
-        "user": os.getenv("DB_USER", "karimzaky"),
+        "dbname": os.environ["DB_NAME"],
+        "user": os.environ["DB_USER"],
         "host": os.getenv("DB_HOST", "localhost"),
         "port": os.getenv("DB_PORT", "5432"),
     }
@@ -160,7 +160,6 @@ def load_records(records=None):
     count_statement, count_params = build_count_statement()
     with get_connection() as connection:
         with connection.cursor() as cursor:
-            cursor.execute(CREATE_TABLE_SQL)
             cursor.execute(count_statement, count_params)
             count_before = cursor.fetchone()[0]
 

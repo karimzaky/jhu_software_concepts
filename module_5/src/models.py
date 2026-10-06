@@ -1,4 +1,4 @@
-"""Define the SQLAlchemy model and database session for Module 3."""
+"""Define the SQLAlchemy model and database session for Module 5."""
 
 import os
 from datetime import date
@@ -20,7 +20,7 @@ from sqlalchemy.orm import (
 
 from sql_safety import clamp_limit
 
-# Find the module_3 directory and load its ignored .env file.
+# Find the module_5 directory and load its ignored .env file.
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_FILE = BASE_DIR / ".env"
 
@@ -31,11 +31,11 @@ load_dotenv(ENV_FILE)
 # combining the username, password, host, port, and database into a string.
 DATABASE_URL = os.getenv("DATABASE_URL") or URL.create(
     drivername="postgresql+psycopg",
-    username=os.getenv("DB_USER", "karimzaky"),
+    username=os.environ["DB_USER"],
     password=os.getenv("DB_PASSWORD") or None,
     host=os.getenv("DB_HOST", "localhost"),
     port=int(os.getenv("DB_PORT", "5432")),
-    database=os.getenv("DB_NAME", "gradcafe_module3"),
+    database=os.environ["DB_NAME"],
 )
 
 
