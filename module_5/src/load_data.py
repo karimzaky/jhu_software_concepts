@@ -9,6 +9,7 @@ from pathlib import Path
 import psycopg
 from dotenv import load_dotenv
 
+from sql_safety import build_count_statement, build_insert_statement
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_FILE = BASE_DIR / "applicant_data.json"
@@ -38,29 +39,7 @@ CREATE TABLE IF NOT EXISTS applicants (
 """
 
 
-INSERT_SQL = """
-INSERT INTO applicants (
-    program,
-    comments,
-    date_added,
-    url,
-    status,
-    term,
-    us_or_international,
-    gpa,
-    gre,
-    gre_v,
-    gre_aw,
-    degree,
-    llm_generated_program,
-    llm_generated_university
-)
-VALUES (
-    %s, %s, %s, %s, %s, %s, %s,
-    %s, %s, %s, %s, %s, %s, %s
-)
-ON CONFLICT (url) DO NOTHING;
-"""
+INSERT_SQL = build_insert_statement()
 
 
 def get_connection():
@@ -102,6 +81,7 @@ def parse_number(value):
     match = re.search(r"-?\d+(?:\.\d+)?", cleaned_value)
     return float(match.group()) if match else None
 
+
 def parse_bounded_number(value, minimum, maximum):
     """
     Extract a number and return it only when it falls within an
@@ -119,6 +99,7 @@ def parse_bounded_number(value, minimum, maximum):
         return number
 
     return None
+
 
 def parse_date(value):
     """Convert a GradCafe date string into a Python date."""
@@ -147,12 +128,10 @@ def prepare_record(record):
         clean_text(record.get("US/International")),
         # GPA values above 4.33 are treated as invalid.
         parse_bounded_number(record.get("GPA"), 0, 4.33),
-
         # Current GRE Quantitative and Verbal scores range from 130 to 170.
         # Combined totals such as 328 cannot be treated as Quantitative scores.
         parse_bounded_number(record.get("GRE"), 130, 170),
         parse_bounded_number(record.get("GRE V"), 130, 170),
-
         # GRE Analytical Writing scores range from 0 to 6.
         parse_bounded_number(record.get("GRE AW"), 0, 6),
         clean_text(record.get("Degree")),
@@ -175,20 +154,19 @@ def load_records(records=None):
         raise ValueError("Applicant data must be a list of records.")
 
     prepared_records = [
-        prepare_record(record)
-        for record in records
-        if clean_text(record.get("url")) is not None
+        prepare_record(record) for record in records if clean_text(record.get("url")) is not None
     ]
 
+    count_statement, count_params = build_count_statement()
     with get_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(CREATE_TABLE_SQL)
-            cursor.execute("SELECT COUNT(*) FROM applicants")
+            cursor.execute(count_statement, count_params)
             count_before = cursor.fetchone()[0]
 
             cursor.executemany(INSERT_SQL, prepared_records)
 
-            cursor.execute("SELECT COUNT(*) FROM applicants")
+            cursor.execute(count_statement, count_params)
             count_after = cursor.fetchone()[0]
 
     inserted_count = count_after - count_before
