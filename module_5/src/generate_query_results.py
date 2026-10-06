@@ -19,8 +19,8 @@ from reportlab.platypus import (
 )
 
 from pdf_support import build_report, add_body_style, add_title_style, validate_report
-from load_data import get_connection
 from query_data import (
+    collect_raw_sql_results,
     QUESTION_1_SQL,
     QUESTION_2_SQL,
     QUESTION_3_SQL,
@@ -40,50 +40,21 @@ OUTPUT_FILE = BASE_DIR / "query_results.pdf"
 
 
 def collect_results():
-    """
-    Execute all 11 SQL queries and return their results.
-
-    Questions 1-9 return one row each.
-    Questions 10 and 11 return multiple rows, so they use fetchall().
-    """
-    results = {}
-
-    with get_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(QUESTION_1_SQL)
-            results["q1"] = cursor.fetchone()[0]
-
-            cursor.execute(QUESTION_2_SQL)
-            results["q2"] = cursor.fetchone()[0]
-
-            cursor.execute(QUESTION_3_SQL)
-            results["q3"] = cursor.fetchone()
-
-            cursor.execute(QUESTION_4_SQL)
-            results["q4"] = cursor.fetchone()[0]
-
-            cursor.execute(QUESTION_5_SQL)
-            results["q5"] = cursor.fetchone()[0]
-
-            cursor.execute(QUESTION_6_SQL)
-            results["q6"] = cursor.fetchone()[0]
-
-            cursor.execute(QUESTION_7_SQL)
-            results["q7"] = cursor.fetchone()[0]
-
-            cursor.execute(QUESTION_8_SQL)
-            results["q8"] = cursor.fetchone()[0]
-
-            cursor.execute(QUESTION_9_SQL)
-            results["q9"] = cursor.fetchone()[0]
-
-            cursor.execute(QUESTION_10_SQL)
-            results["q10"] = cursor.fetchall()
-
-            cursor.execute(QUESTION_11_SQL)
-            results["q11"] = cursor.fetchall()
-
-    return results
+    """Reuse the bounded raw analyses and map their results to report questions."""
+    raw = collect_raw_sql_results()
+    return {
+        "q1": raw["fall_2026_count"],
+        "q2": raw["percent_international"],
+        "q3": (raw["average_gpa"], raw["average_gre"], raw["average_gre_v"], raw["average_gre_aw"]),
+        "q4": raw["average_american_gpa_fall_2026"],
+        "q5": raw["fall_2025_acceptance_percentage"],
+        "q6": raw["average_accepted_gpa_fall_2026"],
+        "q7": raw["jhu_cs_masters_count"],
+        "q8": raw["original_field_count"],
+        "q9": raw["llm_field_count"],
+        "q10": raw["acceptance_by_nationality"],
+        "q11": raw["top_accepted_universities"],
+    }
 
 
 def create_styles():

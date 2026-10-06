@@ -18,6 +18,8 @@ from reportlab.platypus import (
 )
 
 from pdf_support import build_report, add_body_style, add_title_style, validate_report
+from sql_safety import fetch_applicant_count
+
 from load_data import get_connection
 from orm_queries import collect_all_analysis_results
 
@@ -36,11 +38,8 @@ WHITE = colors.white
 
 
 def get_database_count():
-    """Return the current number of PostgreSQL applicant records."""
-    with get_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM applicants;")
-            return cursor.fetchone()[0]
+    """Return the bounded aggregate applicant count."""
+    return fetch_applicant_count(get_connection)
 
 
 def get_missing_value_counts():
@@ -51,7 +50,8 @@ def get_missing_value_counts():
             COUNT(*) FILTER (WHERE gre IS NULL),
             COUNT(*) FILTER (WHERE gre_v IS NULL),
             COUNT(*) FILTER (WHERE gre_aw IS NULL)
-        FROM applicants;
+        FROM applicants
+        LIMIT 1;
     """
 
     with get_connection() as connection:

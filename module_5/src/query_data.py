@@ -1,13 +1,17 @@
 """Run the required GradCafe analyses using raw SQL."""
 
+from psycopg import sql
+
 from load_data import get_connection
+from sql_safety import clamp_limit
 
 # Question 1:
 # Count records whose term is Fall 2026.
 QUESTION_1_SQL = """
 SELECT COUNT(*)
 FROM applicants
-WHERE LOWER(TRIM(term)) = 'fall 2026';
+WHERE LOWER(TRIM(term)) = 'fall 2026'
+LIMIT 1;
 """
 
 
@@ -26,7 +30,8 @@ SELECT
         ),
         0
     )
-FROM applicants;
+FROM applicants
+LIMIT 1;
 """
 
 
@@ -38,7 +43,8 @@ SELECT
     AVG(gre),
     AVG(gre_v),
     AVG(gre_aw)
-FROM applicants;
+FROM applicants
+LIMIT 1;
 """
 # Question 4:
 # Calculate the average GPA of American applicants for Fall 2026.
@@ -47,7 +53,8 @@ SELECT AVG(gpa)
 FROM applicants
 WHERE LOWER(TRIM(term)) = 'fall 2026'
   AND LOWER(TRIM(us_or_international)) = 'american'
-  AND gpa IS NOT NULL;
+  AND gpa IS NOT NULL
+LIMIT 1;
 """
 
 
@@ -61,7 +68,8 @@ SELECT
     )
     / NULLIF(COUNT(*), 0)
 FROM applicants
-WHERE LOWER(TRIM(term)) = 'fall 2025';
+WHERE LOWER(TRIM(term)) = 'fall 2025'
+LIMIT 1;
 """
 
 
@@ -72,7 +80,8 @@ SELECT AVG(gpa)
 FROM applicants
 WHERE LOWER(TRIM(term)) = 'fall 2026'
   AND LOWER(TRIM(status)) LIKE 'accepted%'
-  AND gpa IS NOT NULL;
+  AND gpa IS NOT NULL
+LIMIT 1;
 """
 # Question 7:
 # Count applicants who applied to Johns Hopkins University for a
@@ -85,7 +94,8 @@ WHERE (
         OR program ~* '(^|[^[:alnum:]])JHU([^[:alnum:]]|$)'
       )
   AND program ILIKE '%Computer Science%'
-  AND LOWER(TRIM(degree)) = 'masters';
+  AND LOWER(TRIM(degree)) = 'masters'
+LIMIT 1;
 """
 
 
@@ -105,7 +115,8 @@ WHERE LOWER(TRIM(term)) = 'fall 2026'
         OR program ~* '(^|[^[:alnum:]])MIT([^[:alnum:]]|$)'
         OR program ILIKE '%Stanford University%'
         OR program ILIKE '%Carnegie Mellon University%'
-      );
+      )
+LIMIT 1;
 """
 
 
@@ -128,7 +139,8 @@ WHERE LOWER(TRIM(term)) = 'fall 2026'
             ~* '(^|[^[:alnum:]])MIT([^[:alnum:]]|$)'
         OR llm_generated_university ILIKE '%Stanford University%'
         OR llm_generated_university ILIKE '%Carnegie Mellon University%'
-      );
+      )
+LIMIT 1;
 """
 
 # Question 10
@@ -154,7 +166,8 @@ WHERE LOWER(TRIM(term)) = 'fall 2026'
   AND LOWER(TRIM(us_or_international))
       IN ('american', 'international')
 GROUP BY us_or_international
-ORDER BY applicant_group;
+ORDER BY applicant_group
+LIMIT 100;
 """
 
 
@@ -177,40 +190,79 @@ LIMIT 5;
 """
 
 
+ANALYSIS_STATEMENTS = (
+    QUESTION_1_SQL,
+    QUESTION_2_SQL,
+    QUESTION_3_SQL,
+    QUESTION_4_SQL,
+    QUESTION_5_SQL,
+    QUESTION_6_SQL,
+    QUESTION_7_SQL,
+    QUESTION_8_SQL,
+    QUESTION_9_SQL,
+    QUESTION_10_SQL,
+    QUESTION_11_SQL,
+)
+
+
+def build_analysis_statement(question_number, limit=100):
+    """Compose an approved analysis with a separately bound result limit."""
+    if not isinstance(question_number, int) or not 1 <= question_number <= 11:
+        raise ValueError("Question number must be an integer from 1 to 11.")
+    # These templates are fixed source constants, never request-supplied SQL.
+    template = ANALYSIS_STATEMENTS[question_number - 1].rsplit("LIMIT", 1)[0].strip()
+    inherent_cap = 1 if question_number < 10 else (5 if question_number == 11 else 100)
+    # Psycopg requires literal percent signs to be escaped when binding parameters.
+    fixed_query = sql.SQL(template.replace("%", "%%"))
+    statement = sql.SQL("{query} LIMIT {limit}").format(query=fixed_query, limit=sql.Placeholder())
+    return statement, (min(clamp_limit(limit), inherent_cap),)
+
+
 def collect_raw_sql_results():
     """Execute the analysis queries and return their results."""
     results = {}
     with get_connection() as connection:
         with connection.cursor() as cursor:
-            cursor.execute(QUESTION_1_SQL)
+            statement, params = build_analysis_statement(1)
+            cursor.execute(statement, params)
             results["fall_2026_count"] = cursor.fetchone()[0]
-            cursor.execute(QUESTION_2_SQL)
+            statement, params = build_analysis_statement(2)
+            cursor.execute(statement, params)
             results["percent_international"] = cursor.fetchone()[0]
-            cursor.execute(QUESTION_3_SQL)
+            statement, params = build_analysis_statement(3)
+            cursor.execute(statement, params)
             (
                 results["average_gpa"],
                 results["average_gre"],
                 results["average_gre_v"],
                 results["average_gre_aw"],
             ) = cursor.fetchone()
-            cursor.execute(QUESTION_4_SQL)
+            statement, params = build_analysis_statement(4)
+            cursor.execute(statement, params)
             results["average_american_gpa_fall_2026"] = cursor.fetchone()[0]
-            cursor.execute(QUESTION_5_SQL)
+            statement, params = build_analysis_statement(5)
+            cursor.execute(statement, params)
             results["fall_2025_acceptance_percentage"] = cursor.fetchone()[0]
-            cursor.execute(QUESTION_6_SQL)
+            statement, params = build_analysis_statement(6)
+            cursor.execute(statement, params)
             results["average_accepted_gpa_fall_2026"] = cursor.fetchone()[0]
-            cursor.execute(QUESTION_7_SQL)
+            statement, params = build_analysis_statement(7)
+            cursor.execute(statement, params)
             results["jhu_cs_masters_count"] = cursor.fetchone()[0]
-            cursor.execute(QUESTION_8_SQL)
+            statement, params = build_analysis_statement(8)
+            cursor.execute(statement, params)
             results["original_field_count"] = cursor.fetchone()[0]
-            cursor.execute(QUESTION_9_SQL)
+            statement, params = build_analysis_statement(9)
+            cursor.execute(statement, params)
             results["llm_field_count"] = cursor.fetchone()[0]
             results["field_count_difference"] = (
                 results["llm_field_count"] - results["original_field_count"]
             )
-            cursor.execute(QUESTION_10_SQL)
+            statement, params = build_analysis_statement(10)
+            cursor.execute(statement, params)
             results["acceptance_by_nationality"] = cursor.fetchall()
-            cursor.execute(QUESTION_11_SQL)
+            statement, params = build_analysis_statement(11)
+            cursor.execute(statement, params)
             results["top_accepted_universities"] = cursor.fetchall()
     return results
 

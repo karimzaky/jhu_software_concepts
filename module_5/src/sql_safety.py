@@ -53,3 +53,12 @@ def build_count_statement(limit=1):
         limit=sql.Placeholder(),
     )
     return statement, (clamp_limit(limit),)
+
+
+def fetch_applicant_count(connection_factory):
+    """Read one aggregate result using a caller-provided connection factory."""
+    statement, params = build_count_statement()
+    with connection_factory() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(statement, params)
+            return cursor.fetchone()[0]

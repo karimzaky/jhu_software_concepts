@@ -18,6 +18,8 @@ from sqlalchemy.orm import (
 )
 
 
+from sql_safety import clamp_limit
+
 # Find the module_3 directory and load its ignored .env file.
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_FILE = BASE_DIR / ".env"
@@ -60,7 +62,6 @@ SESSION_FACTORY = sessionmaker(
 # ORM mapping classes expose fields rather than service methods.
 class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
     """Base class inherited by every SQLAlchemy model."""
-
 
 
 # ORM mapping classes expose fields rather than service methods.
@@ -176,9 +177,7 @@ def test_model_connection():
     This uses SQLAlchemy's select() and count(), not raw SQL.
     """
     with SESSION_FACTORY() as session:
-        applicant_count = session.scalar(
-            select(count(Applicant.p_id))
-        )
+        applicant_count = session.scalar((select(count(Applicant.p_id))).limit(clamp_limit(1)))
 
     print(f"SQLAlchemy Applicant count: {applicant_count:,}")
 

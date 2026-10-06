@@ -5,9 +5,10 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
+from sql_safety import fetch_applicant_count
+
 from load_data import get_connection, load_records
 from scrape import scrape_data
-
 
 # Locate the JSON file relative to this Python file.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -53,19 +54,14 @@ def _json_record_count():
         records = json.load(file)
 
     if not isinstance(records, list):
-        raise ValueError(
-            "applicant_data.json must contain a JSON list."
-        )
+        raise ValueError("applicant_data.json must contain a JSON list.")
 
     return len(records)
 
 
 def _database_record_count():
-    """Return the number of applicant rows currently in PostgreSQL."""
-    with get_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM applicants;")
-            return cursor.fetchone()[0]
+    """Return the bounded aggregate applicant count."""
+    return fetch_applicant_count(get_connection)
 
 
 def _pull_data_worker():
@@ -86,8 +82,7 @@ def _pull_data_worker():
         _set_status(
             running=True,
             message=(
-                "Pulling one new GradCafe page. Keep Google Chrome "
-                "open while the scrape runs."
+                "Pulling one new GradCafe page. Keep Google Chrome " "open while the scrape runs."
             ),
             last_added=None,
             error=None,
@@ -103,13 +98,9 @@ def _pull_data_worker():
         load_records(records=scraped_records)
 
         ending_database_count = _database_record_count()
-        inserted_count = (
-            ending_database_count - starting_database_count
-        )
+        inserted_count = ending_database_count - starting_database_count
 
-        finished_time = datetime.now().strftime(
-            "%B %d, %Y at %I:%M:%S %p"
-        )
+        finished_time = datetime.now().strftime("%B %d, %Y at %I:%M:%S %p")
 
         _set_status(
             running=False,
@@ -124,9 +115,7 @@ def _pull_data_worker():
 
     # Restore status and release the lock when the operation fails.
     except Exception as error:  # pylint: disable=broad-exception-caught
-        finished_time = datetime.now().strftime(
-            "%B %d, %Y at %I:%M:%S %p"
-        )
+        finished_time = datetime.now().strftime("%B %d, %Y at %I:%M:%S %p")
 
         _set_status(
             running=False,
